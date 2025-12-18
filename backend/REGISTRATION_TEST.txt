@@ -1,0 +1,4 @@
+Copy and paste this JSON for testing registration:
+
+{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "password": "password123", "confirmPassword": "password123"}
+

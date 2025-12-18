@@ -1,0 +1,49 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import './App.css';
+
+// Components
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Home from './components/Home';
+
+// Pages
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+
+// Component to conditionally show Sidebar and Header
+const AppContent = () => {
+  const location = useLocation();
+  const token = localStorage.getItem('token');
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password';
+  const showLayout = token && !isAuthPage;
+
+  return (
+    <div className="App">
+      {showLayout && <Sidebar />}
+      {showLayout && <Header />}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+      </Routes>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}
+
+export default App;
+

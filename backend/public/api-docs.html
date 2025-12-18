@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voluntree API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        
+        .status-server {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-db {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .api-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .method {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: white;
+        }
+        
+        .method.get {
+            background: #4CAF50;
+        }
+        
+        .method.post {
+            background: #2196F3;
+        }
+        
+        .method.put {
+            background: #FF9800;
+        }
+        
+        .method.delete {
+            background: #f44336;
+        }
+        
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .endpoint-desc {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .endpoint-body {
+            margin-top: 15px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn-test {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .btn-test:hover {
+            background: #45a049;
+        }
+        
+        .btn-test:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        
+        .response.show {
+            display: block;
+        }
+        
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .status-code {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .status-code.success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .status-code.error {
+            background: #f44336;
+            color: white;
+        }
+        
+        .response-body {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .test-all-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+        
+        .test-all-btn:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤝 Volunteer Connect API Documentation</h1>
+            <p>Test and verify all API endpoints</p>
+            <div class="status-bar">
+                <div class="status-item status-server">
+                    <span id="server-status">Checking...</span>
+                </div>
+                <div class="status-item status-db">
+                    <span id="db-status">Checking...</span>
+                </div>
+            </div>
+        </div>
+        
+        <button class="test-all-btn" onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
+        
+        <!-- Authentication APIs -->
+        <div class="api-section">
+            <h2 class="section-title">🔐 Authentication</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/register</span>
+                </div>
+                <div class="endpoint-desc">Register a new user</div>
+                <div class="endpoint-body">
+                    <div class="input-group">
+                        <label>Request Body (JSON):</label>
+                        <textarea id="auth-register-body" placeholder='{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "password": "password123", "confirmPassword": "password123"}'></textarea>
+                    </div>
+                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/register', 'auth-register-body', 'auth-register-response')">Test Endpoint</button>
+                    <div class="response" id="auth-register-response"></div>
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/login</span>
+                </div>
+                <div class="endpoint-desc">Login user - Returns JWT token on success</div>
+                <div class="endpoint-body">
+                    <div class="input-group">
+                        <label>Request Body (JSON):</label>
+                        <textarea id="auth-login-body" placeholder='{"email": "john@example.com", "password": "password123"}'></textarea>
+                    </div>
+                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/login', 'auth-login-body', 'auth-login-response')">Test Endpoint</button>
+                    <div class="response" id="auth-login-response"></div>
+                    <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 0.9em;">
+                        <strong>Success Response:</strong> Returns token and user data. Status: 200
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Forgot Password API -->
+        <div class="api-section">
+            <h2 class="section-title">🔑 Password Reset</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method post">POST</span>
+                    <span class="endpoint-path">/api/auth/forgot-password</span>
+                </div>
+                <div class="endpoint-desc">Request password reset link</div>
+                <div class="endpoint-body">
+                    <div class="input-group">
+                        <label>Request Body (JSON):</label>
+                        <textarea id="forgot-password-body" placeholder='{"email": "john@example.com"}'></textarea>
+                    </div>
+                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/forgot-password', 'forgot-password-body', 'forgot-password-response')">Test Endpoint</button>
+                    <div class="response" id="forgot-password-response"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users APIs -->
+        <div class="api-section">
+            <h2 class="section-title">👥 Users</h2>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint-path">/api/users/me</span>
+                </div>
+                <div class="endpoint-desc">Get current user profile (requires authentication)</div>
+                <div class="endpoint-body">
+                    <div style="padding: 10px; background: #fff3cd; border-radius: 4px; margin-bottom: 10px; font-size: 0.9em;">
+                        ⚠️ Requires Authorization header: Bearer token
+                    </div>
+                    <button class="btn-test" onclick="testEndpoint('GET', '/api/users/me', null, 'users-me-response')">Test Endpoint</button>
+                    <div class="response" id="users-me-response"></div>
+                </div>
+            </div>
+            
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method put">PUT</span>
+                    <span class="endpoint-path">/api/users/me</span>
+                </div>
+                <div class="endpoint-desc">Update current user profile (requires authentication)</div>
+                <div class="endpoint-body">
+                    <div class="input-group">
+                        <label>Request Body (JSON):</label>
+                        <textarea id="users-update-body" placeholder='{"name": "John Doe", "phone": "123-456-7890"}'></textarea>
+                    </div>
+                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/me', 'users-update-body', 'users-update-response')">Test Endpoint</button>
+                    <div class="response" id="users-update-response"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = window.location.origin;
+        
+        // Check server and database status on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkServerStatus();
+            checkDatabaseStatus();
+        });
+        
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(API_BASE_URL + '/');
+                const data = await response.json();
+                document.getElementById('server-status').textContent = '✅ Server: Running';
+                document.getElementById('server-status').parentElement.style.background = '#e8f5e9';
+                document.getElementById('server-status').parentElement.style.color = '#2e7d32';
+            } catch (error) {
+                document.getElementById('server-status').textContent = '❌ Server: Offline';
+                document.getElementById('server-status').parentElement.style.background = '#ffebee';
+                document.getElementById('server-status').parentElement.style.color = '#c62828';
+            }
+        }
+        
+        async function checkDatabaseStatus() {
+            try {
+                const response = await fetch(API_BASE_URL + '/api/health/db');
+                const data = await response.json();
+                if (data.status === 'connected') {
+                    document.getElementById('db-status').textContent = '✅ Database: Connected';
+                    document.getElementById('db-status').parentElement.style.background = '#e8f5e9';
+                    document.getElementById('db-status').parentElement.style.color = '#2e7d32';
+                } else {
+                    throw new Error('Database not connected');
+                }
+            } catch (error) {
+                document.getElementById('db-status').textContent = '❌ Database: Not Connected';
+                document.getElementById('db-status').parentElement.style.background = '#ffebee';
+                document.getElementById('db-status').parentElement.style.color = '#c62828';
+            }
+        }
+        
+        async function testEndpoint(method, path, bodyElementId = null, responseElementId = null) {
+            const responseDiv = document.getElementById(responseElementId || path.replace(/\//g, '-').replace(/:/g, '') + '-response');
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.innerHTML = originalText + ' <span class="loading"></span>';
+            responseDiv.classList.remove('show');
+            
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (bodyElementId) {
+                    const bodyElement = document.getElementById(bodyElementId);
+                    const bodyText = bodyElement.value.trim();
+                    if (bodyText) {
+                        try {
+                            options.body = JSON.stringify(JSON.parse(bodyText));
+                        } catch (e) {
+                            throw new Error('Invalid JSON format');
+                        }
+                    }
+                }
+                
+                const response = await fetch(API_BASE_URL + path, options);
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'success' : 'error';
+                responseDiv.innerHTML = `
+                    <div class="response-header">
+                        <span class="status-code ${statusClass}">Status: ${response.status}</span>
+                        <span>${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="response-body">${JSON.stringify(data, null, 2)}</div>
+                `;
+                responseDiv.classList.add('show');
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="response-header">
+                        <span class="status-code error">Error</span>
+                        <span>${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="response-body">${error.message}</div>
+                `;
+                responseDiv.classList.add('show');
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+        
+        async function testAllEndpoints() {
+            const endpoints = [
+                { method: 'GET', path: '/api/users' },
+                { method: 'GET', path: '/api/volunteers' },
+                { method: 'GET', path: '/api/organizations' },
+            ];
+            
+            for (const endpoint of endpoints) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const button = Array.from(document.querySelectorAll('.btn-test')).find(btn => 
+                    btn.getAttribute('onclick')?.includes(endpoint.path)
+                );
+                if (button) {
+                    button.click();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
