@@ -12,6 +12,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Chat from './pages/Chat';
+import Activities from './pages/Activities';
+import ActivityDetail from './pages/ActivityDetail';
 import ForgotPassword from './pages/ForgotPassword';
 
 // Component to conditionally show Sidebar and Header
@@ -31,7 +34,9 @@ const AppContent = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/activities" element={<Dashboard />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/activities" element={<Activities />} />
+        <Route path="/activities/:id" element={<ActivityDetail />} />
         <Route path="/history" element={<Dashboard />} />
         <Route path="/settings" element={<Dashboard />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

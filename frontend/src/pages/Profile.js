@@ -27,17 +27,10 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Mock data for activities and tasks
+  // Mock data for activities
   const [activities] = useState([
     { id: 1, name: 'Active Activity', account: '8040 5000 8008 4525', status: 'active' },
     { id: 2, name: 'Completed Activity', account: '7582 5689 3543 2548', status: 'completed' },
-  ]);
-
-  const [tasks] = useState([
-    { id: 1, name: 'Community Cleanup', status: 'completed', paid: true },
-    { id: 2, name: 'Food Drive', status: 'pending', paid: false },
-    { id: 3, name: 'Education Workshop', status: 'completed', paid: true },
-    { id: 4, name: 'Health Check-up', status: 'completed', paid: true },
   ]);
 
   useEffect(() => {
@@ -401,26 +394,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* My Tasks Card */}
-          <div className="profile-side-card">
-            <div className="side-card-header">
-              <h3>My Tasks</h3>
-              <div className="filter-section">
-                <span className="filter-label">Filter by</span>
-              </div>
-            </div>
-            <div className="tasks-list">
-              {tasks.map((task) => (
-                <div key={task.id} className="task-item">
-                  <div className={`task-status-dot ${task.paid ? 'paid' : 'unpaid'}`}></div>
-                  <span className="task-name">{task.name}</span>
-                  <button className={`task-status-btn ${task.paid ? 'paid' : 'unpaid'}`}>
-                    {task.paid ? 'Task Completed' : 'Not Completed'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

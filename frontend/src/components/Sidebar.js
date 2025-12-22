@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { HomeIcon, UserIcon, ActivitiesIcon, HistoryIcon, SettingsIcon, PlusIcon, MobileIcon } from './Icons';
+import { HomeIcon, UserIcon, ActivitiesIcon, HistoryIcon, SettingsIcon, PlusIcon, MobileIcon, MessagesIcon } from './Icons';
 import './css/Sidebar.css';
 
 const Sidebar = () => {
@@ -10,6 +10,7 @@ const Sidebar = () => {
   const menuItems = [
     { path: '/dashboard', icon: HomeIcon, label: 'Dashboard' },
     { path: '/profile', icon: UserIcon, label: 'Profile' },
+    { path: '/chat', icon: MessagesIcon, label: 'AI Chat' },
     { path: '/activities', icon: ActivitiesIcon, label: 'Activities' },
     { path: '/history', icon: HistoryIcon, label: 'History' },
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
