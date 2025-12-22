@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { HomeIcon, UserIcon, ActivitiesIcon, HistoryIcon, SettingsIcon, PlusIcon, MobileIcon } from './Icons';
 import './css/Sidebar.css';
 
 const Sidebar = () => {
@@ -7,48 +8,57 @@ const Sidebar = () => {
   const token = localStorage.getItem('token');
 
   const menuItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard', show: token },
-    { path: '/profile', icon: '👤', label: 'Profile', show: token },
+    { path: '/dashboard', icon: HomeIcon, label: 'Dashboard' },
+    { path: '/profile', icon: UserIcon, label: 'Profile' },
+    { path: '/activities', icon: ActivitiesIcon, label: 'Activities' },
+    { path: '/history', icon: HistoryIcon, label: 'History' },
+    { path: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
+
+  if (!token) {
+    return null;
+  }
 
   return (
     <aside className="sidebar">
       <div className="sidebar-content">
+        {/* Logo Section */}
         <div className="sidebar-logo">
-          <span className="logo-icon">🤝</span>
-          <span className="logo-text">Volunteer Connect</span>
+          <div className="logo-icon">
+            <span className="logo-text-inner">V+</span>
+          </div>
+          <span className="logo-brand">Volunteer Connect</span>
         </div>
 
-        {token && (
-          <nav className="sidebar-nav">
-            {menuItems.map((item) => {
-              if (!item.show) return null;
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        )}
+        {/* New Activity Button */}
+        <button className="new-activity-btn">
+          <PlusIcon className="plus-icon" />
+          <span>New Activity</span>
+        </button>
 
-        <div className="sidebar-footer">
-          <div className="mobile-app-section">
-            <div className="mobile-app-illustration">
-              <span className="mobile-icon">📱</span>
-            </div>
-            <p className="mobile-app-text">Get mobile app</p>
-            <div className="app-stores">
-              <span className="store-icon">📱</span>
-              <span className="store-icon">🍎</span>
-            </div>
-          </div>
+        {/* Navigation Menu */}
+        <nav className="sidebar-nav">
+          {menuItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = location.pathname === item.path || 
+                           (item.path === '/dashboard' && (location.pathname === '/' || location.pathname === '/dashboard'));
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+              >
+                <IconComponent className="nav-icon" />
+                <span className="nav-label">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Get Mobile App Section */}
+        <div className="mobile-app-section">
+          <MobileIcon className="mobile-app-icon" />
+          <span className="mobile-app-text">Get mobile app</span>
         </div>
       </div>
     </aside>
@@ -56,4 +66,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-

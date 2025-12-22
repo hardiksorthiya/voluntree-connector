@@ -169,23 +169,6 @@ const Login = () => {
             >
               {loading ? 'Signing in...' : success ? 'Success!' : 'Sign in'}
             </button>
-
-            {/* Divider */}
-            <div className="auth-divider">
-              <span>Or</span>
-            </div>
-
-            {/* Sign in with other Button */}
-            <button 
-              type="button" 
-              className="btn-secondary"
-              onClick={() => {
-                // Placeholder for social login
-                alert('Social login coming soon!');
-              }}
-            >
-              Sign in with other
-            </button>
           </form>
 
           {/* Sign Up Link */}

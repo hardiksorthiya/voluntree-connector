@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import './App.css';
 
 // Components
@@ -26,11 +26,14 @@ const AppContent = () => {
       {showLayout && <Sidebar />}
       {showLayout && <Header />}
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={token ? <Navigate to="/dashboard" replace /> : <Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/activities" element={<Dashboard />} />
+        <Route path="/history" element={<Dashboard />} />
+        <Route path="/settings" element={<Dashboard />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Routes>
     </div>

@@ -204,23 +204,6 @@ const Register = () => {
             >
               {loading ? 'Creating account...' : 'Sign up'}
             </button>
-
-            {/* Divider */}
-            <div className="auth-divider">
-              <span>Or</span>
-            </div>
-
-            {/* Sign up with other Button */}
-            <button 
-              type="button" 
-              className="btn-secondary"
-              onClick={() => {
-                // Placeholder for social registration
-                alert('Social registration coming soon!');
-              }}
-            >
-              Sign up with other
-            </button>
           </form>
 
           {/* Sign In Link */}

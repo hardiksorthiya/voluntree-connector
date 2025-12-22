@@ -82,5 +82,14 @@
   --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.3);
   --shadow-button: 0 4px 12px rgba(37, 99, 235, 0.3);
   --shadow-button-hover: 0 6px 16px rgba(37, 99, 235, 0.4);
+  
+  /* Purple Brand Colors */
+  --color-purple: #7c3aed;
+  --color-purple-dark: #6d28d9;
+  --color-purple-light: #8b5cf6;
+  --color-purple-gradient-start: #8b5cf6;
+  --color-purple-gradient-end: #6d28d9;
+  --color-active-bg: #f3f4f6;
+  --color-mobile-app-bg: #e0f2fe;
 }
 
