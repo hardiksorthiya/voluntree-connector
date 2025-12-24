@@ -4,18 +4,43 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
+// --- added: token authentication helper (usable by new endpoints) ---
+function authenticateToken(req, res, next) {
+	// try query, Authorization header "Bearer <token>", then body
+	// support case-insensitive header key and tolerant formats
+	const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+	const bearer = authHeader && authHeader.split ? authHeader.split(' ')[1] : null;
+	const token = req.query.token || bearer || (req.body && req.body.token);
+	if (!token) {
+		return res.status(401).json({ success: false, message: 'Token missing' });
+	}
+	try {
+		const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production');
+		req.user = decoded;
+		next();
+	} catch (err) {
+		return res.status(401).json({ success: false, message: 'Invalid token' });
+	}
+}
+// --- end added helper ---
+
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone, password, confirmPassword } = req.body;
+    // Accept params from query for frontend convenience, but fall back to body
+    const name = req.query.name || req.body.name;
+    const email = req.query.email || req.body.email;
+    const mobile = req.query.mobile || req.body.mobile; // renamed from phone -> mobile
+    const password = req.query.password || req.body.password;
+    const confirmPassword = req.query.confirmPassword || req.body.confirmPassword;
     
     // Validation
-    if (!name || !email || !phone || !password || !confirmPassword) {
+    if (!name || !email || !mobile || !password || !confirmPassword) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Please provide all required fields: name, email, phone, password, confirmPassword' 
+        message: 'Please provide all required fields: name, email, mobile, password, confirmPassword' 
       });
     }
     
@@ -59,12 +84,13 @@ router.post('/register', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
-    // Insert user into database
+    // Insert user into database (store mobile into phone column) and set role default 1 (volunteer)
     let insertId;
     try {
       const [result] = await db.promise.execute(
-        'INSERT INTO users (name, email, phone, password, user_type) VALUES (?, ?, ?, ?, ?)',
-        [name, email, phone, hashedPassword, 'volunteer']
+        // store numeric role: 1 = volunteer, 0 = admin
+        'INSERT INTO users (name, email, phone, password, user_type, role) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, email, mobile, hashedPassword, 'volunteer', 1]
       );
       
       insertId = result.insertId;
@@ -73,9 +99,18 @@ router.post('/register', async (req, res) => {
       throw insertError;
     }
     
-    // Get the created user (without password)
+    // Get the created user (without password); return numeric role (fallback mapping from user_type)
     const [newUserRows] = await db.promise.execute(
-      'SELECT id, name, email, phone, user_type, created_at FROM users WHERE id = ?',
+      `SELECT id, name, email, phone,
+         COALESCE(role,
+           CASE
+             WHEN user_type = 'admin' THEN 0
+             WHEN user_type = 'volunteer' THEN 1
+             ELSE 1
+           END
+         ) AS role,
+         created_at
+       FROM users WHERE id = ?`,
       [insertId]
     );
     
@@ -104,7 +139,8 @@ router.post('/register', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = req.query.email || req.body.email;
+    const password = req.query.password || req.body.password;
     
     // Validation
     if (!email || !password) {
@@ -114,45 +150,61 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // Find user by email
+    // Find user by email and include numeric role (fallback mapping)
     const [users] = await db.promise.execute(
-      'SELECT id, name, email, phone, password, user_type, is_active FROM users WHERE email = ?',
+      `SELECT id, name, email, phone, password, user_type,
+         COALESCE(role,
+           CASE
+             WHEN user_type = 'admin' THEN 0
+             WHEN user_type = 'volunteer' THEN 1
+             ELSE 1
+           END
+         ) AS role,
+         is_active
+       FROM users WHERE email = ?`,
       [email]
     );
     
     if (users.length === 0) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid email or password' 
-      });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
     
     const user = users[0];
+
+    // Debug hint: log basic user lookup info (no password)
+    console.debug(`Login attempt for user id=${user.id}, email=${user.email}, role=${user.role}, is_active=${user.is_active}`);
     
-    // Check if user is active
-    if (!user.is_active) {
+    // Explicit active check: treat is_active === 0 as deactivated
+    if (user.is_active !== undefined && Number(user.is_active) === 0) {
       return res.status(401).json({ 
         success: false, 
         message: 'Account is deactivated' 
       });
     }
     
+    // Ensure password hash exists
+    if (!user.password) {
+      console.error(`Login failed: no password hash stored for user id=${user.id}`);
+      return res.status(500).json({ success: false, message: 'User password not set. Contact admin.' });
+    }
+    
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
+      console.warn(`Invalid password for user id=${user.id} (role=${user.role})`);
       return res.status(401).json({ 
         success: false, 
         message: 'Invalid email or password' 
       });
     }
     
-    // Generate JWT token
+    // Generate JWT token including numeric role
     const token = jwt.sign(
       { 
         id: user.id, 
         email: user.email,
-        user_type: user.user_type 
+        role: Number(user.role) // ensure numeric in token
       },
       process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production',
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -169,10 +221,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -181,7 +230,8 @@ router.post('/login', async (req, res) => {
 // @access  Public
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body;
+    // Accept email from query for frontend convenience, but fall back to body
+    const email = req.query.email || req.body.email;
     
     // Validation
     if (!email) {
@@ -207,20 +257,11 @@ router.post('/forgot-password', async (req, res) => {
     );
     
     // Always return success message for security (don't reveal if email exists)
-    if (users.length > 0) {
-      // TODO: Generate reset token and send email
-      // For now, just return success message
-      res.json({ 
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      });
-    } else {
-      // Still return success to prevent email enumeration
-      res.json({ 
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      });
-    }
+    // TODO: If user exists generate reset token and send email
+    res.json({ 
+      success: true,
+      message: 'If an account exists with this email, a password reset link has been sent.'
+    });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ 
@@ -228,6 +269,99 @@ router.post('/forgot-password', async (req, res) => {
       message: error.message 
     });
   }
+});
+
+// --- new: list all users (requires token + admin (role === 0)) ---
+router.get('/users', authenticateToken, async (req, res) => {
+	try {
+		// restrict listing to admin role (0)
+		if (!req.user || Number(req.user.role) !== 0) {
+			return res.status(403).json({ success: false, message: 'Forbidden: admin only' });
+		}
+		const [rows] = await db.promise.execute(
+			'SELECT id, name, email, phone AS mobile, COALESCE(role, CASE WHEN user_type="admin" THEN 0 WHEN user_type="volunteer" THEN 1 ELSE 1 END) AS role, is_active, created_at FROM users'
+		);
+		res.json({ success: true, data: rows });
+	} catch (error) {
+		console.error('Get users error:', error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+});
+
+// --- new: delete user by id (requires token + admin (role === 0)) ---
+router.delete('/users/:id', authenticateToken, async (req, res) => {
+	try {
+		// admin only
+		if (!req.user || Number(req.user.role) !== 0) {
+			return res.status(403).json({ success: false, message: 'Forbidden: admin only' });
+		}
+		const userId = req.params.id;
+		// soft-delete: set is_active = 0 (safer)
+		await db.promise.execute('UPDATE users SET is_active = 0 WHERE id = ?', [userId]);
+		res.json({ success: true, message: 'User deleted (soft) successfully' });
+	} catch (error) {
+		console.error('Delete user error:', error);
+		res.status(500).json({ success: false, message: error.message });
+	}
+});
+
+// --- new: update user by id (requires token; owner or admin) ---
+router.put('/users/:id', authenticateToken, async (req, res) => {
+	try {
+		const userId = req.params.id;
+		const name = req.query.name || req.body.name;
+		const email = req.query.email || req.body.email;
+		const mobile = req.query.mobile || req.body.mobile || req.body.phone;
+		const password = req.query.password || req.body.password;
+		const role = (req.query.role !== undefined ? req.query.role : (req.body.role !== undefined ? req.body.role : undefined));
+		// role expected as numeric (0 or 1) if provided
+
+		// allow if owner or admin
+		const requesterId = req.user && req.user.id;
+		const requesterRole = req.user && Number(req.user.role);
+
+		if (requesterId !== undefined && Number(requesterId) !== Number(userId) && requesterRole !== 0) {
+			return res.status(403).json({ success: false, message: 'Forbidden: can only update own profile or admin' });
+		}
+
+		// if role change requested, only admin may change role
+		if (role !== undefined && requesterRole !== 0) {
+			return res.status(403).json({ success: false, message: 'Forbidden: only admin may change role' });
+		}
+
+		// Build update statement dynamically
+		const fields = [];
+		const values = [];
+		if (name) { fields.push('name = ?'); values.push(name); }
+		if (email) { fields.push('email = ?'); values.push(email); }
+		if (mobile) { fields.push('phone = ?'); values.push(mobile); }
+		if (role !== undefined) { fields.push('role = ?'); values.push(Number(role)); }
+		if (password) {
+			const saltRounds = 10;
+			const hashedPassword = await bcrypt.hash(password, saltRounds);
+			fields.push('password = ?');
+			values.push(hashedPassword);
+		}
+
+		if (fields.length === 0) {
+			return res.status(400).json({ success: false, message: 'No update fields provided' });
+		}
+
+		values.push(userId);
+		const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+		await db.promise.execute(sql, values);
+
+		// Return updated user (without password)
+		const [rows] = await db.promise.execute(
+			'SELECT id, name, email, phone AS mobile, COALESCE(role, CASE WHEN user_type="admin" THEN 0 WHEN user_type="volunteer" THEN 1 ELSE 1 END) AS role, is_active, created_at FROM users WHERE id = ?',
+			[userId]
+		);
+
+		res.json({ success: true, message: 'User updated successfully', data: rows[0] });
+	} catch (error) {
+		console.error('Update user error:', error);
+		res.status(500).json({ success: false, message: error.message });
+	}
 });
 
 module.exports = router;

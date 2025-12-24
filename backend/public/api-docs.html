@@ -265,121 +265,419 @@
         .test-all-btn:hover {
             background: #5568d3;
         }
+        
+        /* Accordion styles (added) */
+        .accordion { border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+        .accordion-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 18px 22px;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.06);
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #333;
+        }
+        .accordion-toggle .title { display:flex; gap:12px; align-items:center; }
+        .accordion-toggle .icon {
+            transition: transform .25s ease;
+            font-size: 18px;
+            color: #666;
+        }
+        .accordion-toggle.collapsed .icon { transform: rotate(-90deg); } /* collapsed state rotates icon */
+        .accordion-content {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            display: none; /* collapsed by default */
+        }
+        .accordion-content.show { display: block; }
+        /* Slight spacing for inner endpoints */
+        .accordion-content .api-section { margin: 0; box-shadow: none; border-left: none; }
+
+        /* Sidebar styles (added) */
+        .layout {
+            display: flex;
+            gap: 20px;
+        }
+        .sidebar {
+            width: 220px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+            height: calc(100vh - 40px);
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+        }
+        .sidebar .brand { font-weight:700; margin-bottom:10px; color:#333; display:flex; gap:8px; align-items:center}
+        .sidebar .nav { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+        .sidebar .nav button {
+            text-align:left;
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            border-radius:6px;
+            cursor: pointer;
+            font-weight:600;
+            color:#333;
+        }
+        .sidebar .nav button:hover { background:#f1f5f9; }
+        .sidebar .logout { color:#b91c1c; }
+        /* simple toast */
+        #toast {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: none;
+            z-index: 9999;
+            font-size: 13px;
+        }
+
+        /* Users sidebar (added) */
+        .users-sidebar-toggle {
+            display:inline-block;
+            margin-left:12px;
+            padding:8px 12px;
+            background:#fff;
+            border-radius:6px;
+            color:#2f80ed;
+            border:1px solid #dbeafe;
+            cursor:pointer;
+            font-weight:600;
+            text-decoration:none;
+        }
+        .users-sidebar {
+            position:fixed;
+            left:0;
+            top:0;
+            bottom:0;
+            width:340px;
+            background:#ffffff;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.12);
+            transform: translateX(-100%);
+            transition: transform .28s ease;
+            z-index:1000;
+            overflow:auto;
+            padding:18px;
+        }
+        .users-sidebar.open { transform: translateX(0); }
+        .users-sidebar .header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+        .users-sidebar .header h3 { margin:0; font-size:1.1em; color:#222; }
+        .users-sidebar .close-btn { background:#f3f4f6; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; }
+        .users-sidebar .users-table { width:100%; border-collapse:collapse; font-family:monospace; font-size:13px; }
+        .users-sidebar .users-table th, .users-sidebar .users-table td { padding:8px 6px; border-bottom:1px solid #eee; text-align:left; }
+        .users-sidebar .users-table th { background:#fafafa; font-weight:700; font-size:12px; color:#444; }
+        .users-sidebar .small { font-size:12px; color:#666; margin-top:8px; }
+        .users-sidebar .refresh-btn { background:#2f80ed;color:#fff;border:0;padding:8px 10px;border-radius:6px;cursor:pointer;font-weight:600;margin-left:8px; }
+        .users-sidebar .empty { padding:18px; color:#777; text-align:center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🤝 Volunteer Connect API Documentation</h1>
-            <p>Test and verify all API endpoints</p>
-            <div class="status-bar">
-                <div class="status-item status-server">
-                    <span id="server-status">Checking...</span>
+    <div class="layout">
+        <div class="sidebar" aria-label="Sidebar">
+            <div class="brand">📚 Voluntree</div>
+            <div class="nav">
+                <button onclick="document.getElementById('auth-content')?.classList.add('show');window.scrollTo({top:0,behavior:'smooth'})">API Docs</button>
+                <button id="logoutBtn" class="logout" onclick="handleLogout()">Logout</button>
+            </div>
+            <div style="margin-top:14px;font-size:13px;color:#666;">
+                Login token stored in localStorage as <code>voluntree_token</code>.
+            </div>
+        </div>
+        <div style="flex:1">
+            <div class="container">
+                <div class="header">
+                    <h1>🤝 Volunteer Connect API Documentation</h1>
+                    <p>Test and verify all API endpoints</p>
+                    <div style="margin-top:12px;">
+                        <a href="/login.html" target="_blank" style="display:inline-block;padding:8px 12px;background:#2f80ed;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">Open Login Page</a>
+                        <!-- Users sidebar toggle button (added) -->
+                        <button id="openUsersSidebar" class="users-sidebar-toggle" type="button">Users</button>
+                    </div>
+                    <div class="status-bar">
+                        <div class="status-item status-server">
+                            <span id="server-status">Checking...</span>
+                        </div>
+                        <div class="status-item status-db">
+                            <span id="db-status">Checking...</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="status-item status-db">
-                    <span id="db-status">Checking...</span>
+                
+                <button class="test-all-btn" onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
+
+                <!-- Authentication APIs (now inside accordion) -->
+                <div class="accordion" id="accordion-authentication">
+                    <div class="accordion-toggle collapsed" data-target="auth-content" role="button" aria-expanded="false" tabindex="0">
+                        <div class="title"><span>🔐</span><span>Authentication</span></div>
+                        <div class="icon">▾</div>
+                    </div>
+                    <div id="auth-content" class="accordion-content" aria-hidden="true">
+                        <div class="api-section">
+                            <h2 class="section-title">🔐 Authentication</h2>
+                            
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method post">POST</span>
+                                    <span class="endpoint-path">/api/auth/register</span>
+                                </div>
+                                <div class="endpoint-desc">Register a new user</div>
+                                <div class="endpoint-body">
+                                    <div id="auth-register-form">
+                                        <div class="input-group">
+                                            <label>Name</label>
+                                            <input id="reg-name" type="text" placeholder="John Doe" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Email</label>
+                                            <input id="reg-email" type="email" placeholder="john@example.com" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Mobile</label>
+                                            <input id="reg-mobile" type="text" placeholder="123-456-7890" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Password</label>
+                                            <input id="reg-password" type="password" placeholder="password123" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Confirm Password</label>
+                                            <input id="reg-confirmPassword" type="password" placeholder="password123" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/register', 'auth-register-form', 'auth-register-response')">Test Endpoint</button>
+                                    <div class="response" id="auth-register-response"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method post">POST</span>
+                                    <span class="endpoint-path">/api/auth/login</span>
+                                </div>
+                                <div class="endpoint-desc">Login user - Returns JWT token on success</div>
+                                <div class="endpoint-body">
+                                    <div id="auth-login-form">
+                                        <div class="input-group">
+                                            <label>Email</label>
+                                            <input id="login-email" type="email" placeholder="john@example.com" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Password</label>
+                                            <input id="login-password" type="password" placeholder="password123" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/login', 'auth-login-form', 'auth-login-response')">Test Endpoint</button>
+                                    <div class="response" id="auth-login-response"></div>
+                                    <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 0.9em;">
+                                        <strong>Success Response:</strong> Returns token and user data. Status: 200
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Forgot Password API (accordion) -->
+                <div class="accordion" id="accordion-forgot">
+                    <div class="accordion-toggle collapsed" data-target="forgot-content" role="button" aria-expanded="false" tabindex="0">
+                        <div class="title"><span>🔑</span><span>Password Reset</span></div>
+                        <div class="icon">▾</div>
+                    </div>
+                    <div id="forgot-content" class="accordion-content" aria-hidden="true">
+                        <div class="api-section">
+                            <h2 class="section-title">🔑 Password Reset</h2>
+                            
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method post">POST</span>
+                                    <span class="endpoint-path">/api/auth/forgot-password</span>
+                                </div>
+                                <div class="endpoint-desc">Request password reset link</div>
+                                <div class="endpoint-body">
+                                    <div id="forgot-password-form">
+                                        <div class="input-group">
+                                            <label>Email</label>
+                                            <input id="forgot-email" type="email" placeholder="john@example.com" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/forgot-password', 'forgot-password-form', 'forgot-password-response')">Test Endpoint</button>
+                                    <div class="response" id="forgot-password-response"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Users APIs (accordion) -->
+                <div class="accordion" id="accordion-users">
+                    <div class="accordion-toggle collapsed" data-target="users-content" role="button" aria-expanded="false" tabindex="0">
+                        <div class="title"><span>👥</span><span>Users</span></div>
+                        <div class="icon">▾</div>
+                    </div>
+                    <div id="users-content" class="accordion-content" aria-hidden="true">
+                        <div class="api-section">
+                            <h2 class="section-title">👥 Users</h2>
+                            
+                            <!-- Token input for user-management endpoints -->
+                            <div class="input-group">
+                                <label>Auth Token (JWT)</label>
+                                <input id="users-token" type="text" placeholder="Paste token here for protected endpoints" />
+                                <div style="margin-top:8px;font-size:13px;color:#555;">
+                                    Role: <strong id="token-role-label">unknown</strong>
+                                    <button id="apply-token-btn" class="btn-test" style="margin-left:10px;padding:6px 10px;font-size:0.9em;">Apply token</button>
+                                </div>
+                            </div>
+                            
+                            <!-- List all users (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method get">GET</span>
+                                    <span class="endpoint-path">/api/auth/users</span>
+                                </div>
+                                <div class="endpoint-desc">List all users (requires token)</div>
+                                <div class="endpoint-body">
+                                    <button class="btn-test" onclick="testEndpoint('GET', '/api/auth/users', 'users-token', 'users-list-response')">Test Endpoint</button>
+                                    <div class="response" id="users-list-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Delete user (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method delete">DELETE</span>
+                                    <span class="endpoint-path">/api/auth/users/:id</span>
+                                </div>
+                                <div class="endpoint-desc">Delete user by ID (requires token)</div>
+                                <div class="endpoint-body">
+                                    <div id="delete-user-form">
+                                        <div class="input-group">
+                                            <label>User ID to Delete</label>
+                                            <input id="delete-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('DELETE', '/api/auth/users/:id', 'delete-user-form', 'users-delete-response')">Test Endpoint</button>
+                                    <div class="response" id="users-delete-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Update user (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method put">PUT</span>
+                                    <span class="endpoint-path">/api/auth/users/:id</span>
+                                </div>
+                                <div class="endpoint-desc">Update user by ID (provide any fields to update; requires token)</div>
+                                <div class="endpoint-body">
+                                    <div id="update-user-form">
+                                        <div class="input-group">
+                                            <label>User ID to Update</label>
+                                            <input id="update-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Name</label>
+                                            <input id="update-name" type="text" placeholder="New name (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Email</label>
+                                            <input id="update-email" type="email" placeholder="New email (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Mobile</label>
+                                            <input id="update-mobile" type="text" placeholder="New mobile (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>New Password</label>
+                                            <input id="update-password" type="password" placeholder="New password (optional)" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/auth/users/:id', 'update-user-form', 'users-update-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-response"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method get">GET</span>
+                                    <span class="endpoint-path">/api/users/me</span>
+                                </div>
+                                <div class="endpoint-desc">Get current user profile (requires authentication)</div>
+                                <div class="endpoint-body">
+                                    <div style="padding: 10px; background: #fff3cd; border-radius: 4px; margin-bottom: 10px; font-size: 0.9em;">
+                                        ⚠️ Requires Authorization header: Bearer token
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('GET', '/api/users/me', null, 'users-me-response')">Test Endpoint</button>
+                                    <div class="response" id="users-me-response"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method put">PUT</span>
+                                    <span class="endpoint-path">/api/users/me</span>
+                                </div>
+                                <div class="endpoint-desc">Update current user profile (requires authentication)</div>
+                                <div class="endpoint-body">
+                                    <div class="input-group">
+                                        <label>Request Body (JSON):</label>
+                                        <textarea id="users-update-body" placeholder='{"name": "John Doe", "phone": "123-456-7890"}'></textarea>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/me', 'users-update-body', 'users-update-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-response"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <button class="test-all-btn" onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
-        
-        <!-- Authentication APIs -->
-        <div class="api-section">
-            <h2 class="section-title">🔐 Authentication</h2>
-            
-            <div class="endpoint">
-                <div class="endpoint-header">
-                    <span class="method post">POST</span>
-                    <span class="endpoint-path">/api/auth/register</span>
-                </div>
-                <div class="endpoint-desc">Register a new user</div>
-                <div class="endpoint-body">
-                    <div class="input-group">
-                        <label>Request Body (JSON):</label>
-                        <textarea id="auth-register-body" placeholder='{"name": "John Doe", "email": "john@example.com", "phone": "123-456-7890", "password": "password123", "confirmPassword": "password123"}'></textarea>
-                    </div>
-                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/register', 'auth-register-body', 'auth-register-response')">Test Endpoint</button>
-                    <div class="response" id="auth-register-response"></div>
+        <!-- Users Sidebar panel (added) -->
+        <aside id="usersSidebar" class="users-sidebar" aria-hidden="true">
+            <div class="header">
+                <h3>All Users</h3>
+                <div>
+                    <button id="refreshUsersBtn" class="refresh-btn" title="Refresh">Refresh</button>
+                    <button id="closeUsersSidebar" class="close-btn" title="Close">✕</button>
                 </div>
             </div>
-            
-            <div class="endpoint">
-                <div class="endpoint-header">
-                    <span class="method post">POST</span>
-                    <span class="endpoint-path">/api/auth/login</span>
-                </div>
-                <div class="endpoint-desc">Login user - Returns JWT token on success</div>
-                <div class="endpoint-body">
-                    <div class="input-group">
-                        <label>Request Body (JSON):</label>
-                        <textarea id="auth-login-body" placeholder='{"email": "john@example.com", "password": "password123"}'></textarea>
-                    </div>
-                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/login', 'auth-login-body', 'auth-login-response')">Test Endpoint</button>
-                    <div class="response" id="auth-login-response"></div>
-                    <div style="margin-top: 10px; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 0.9em;">
-                        <strong>Success Response:</strong> Returns token and user data. Status: 200
+
+            <div id="usersSidebarContent">
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:700;font-size:13px;">Auth Token</label>
+                    <div style="display:flex;gap:8px;margin-top:6px;">
+                        <input id="sidebar-token" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:monospace" placeholder="Paste token or use 'Auth Token (JWT)' field" />
+                        <button id="useDocToken" class="close-btn" title="Copy from docs token input">Use docs token</button>
                     </div>
                 </div>
+
+                <div id="usersLoading" class="small">Click Refresh to load users.</div>
+                <div id="usersError" class="small" style="color:#c62828;display:none;"></div>
+
+                <div id="usersTableWrap" style="margin-top:12px; display:none;">
+                    <table class="users-table" id="usersTable">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Email</th><th>Mobile</th><th>Role</th><th>Active</th></tr>
+                        </thead>
+                        <tbody id="usersTbody"></tbody>
+                    </table>
+                </div>
+
+                <div id="usersEmpty" class="empty" style="display:none;">No users found or you lack permission (admin only).</div>
             </div>
-        </div>
-        
-        <!-- Forgot Password API -->
-        <div class="api-section">
-            <h2 class="section-title">🔑 Password Reset</h2>
-            
-            <div class="endpoint">
-                <div class="endpoint-header">
-                    <span class="method post">POST</span>
-                    <span class="endpoint-path">/api/auth/forgot-password</span>
-                </div>
-                <div class="endpoint-desc">Request password reset link</div>
-                <div class="endpoint-body">
-                    <div class="input-group">
-                        <label>Request Body (JSON):</label>
-                        <textarea id="forgot-password-body" placeholder='{"email": "john@example.com"}'></textarea>
-                    </div>
-                    <button class="btn-test" onclick="testEndpoint('POST', '/api/auth/forgot-password', 'forgot-password-body', 'forgot-password-response')">Test Endpoint</button>
-                    <div class="response" id="forgot-password-response"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Users APIs -->
-        <div class="api-section">
-            <h2 class="section-title">👥 Users</h2>
-            
-            <div class="endpoint">
-                <div class="endpoint-header">
-                    <span class="method get">GET</span>
-                    <span class="endpoint-path">/api/users/me</span>
-                </div>
-                <div class="endpoint-desc">Get current user profile (requires authentication)</div>
-                <div class="endpoint-body">
-                    <div style="padding: 10px; background: #fff3cd; border-radius: 4px; margin-bottom: 10px; font-size: 0.9em;">
-                        ⚠️ Requires Authorization header: Bearer token
-                    </div>
-                    <button class="btn-test" onclick="testEndpoint('GET', '/api/users/me', null, 'users-me-response')">Test Endpoint</button>
-                    <div class="response" id="users-me-response"></div>
-                </div>
-            </div>
-            
-            <div class="endpoint">
-                <div class="endpoint-header">
-                    <span class="method put">PUT</span>
-                    <span class="endpoint-path">/api/users/me</span>
-                </div>
-                <div class="endpoint-desc">Update current user profile (requires authentication)</div>
-                <div class="endpoint-body">
-                    <div class="input-group">
-                        <label>Request Body (JSON):</label>
-                        <textarea id="users-update-body" placeholder='{"name": "John Doe", "phone": "123-456-7890"}'></textarea>
-                    </div>
-                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/me', 'users-update-body', 'users-update-response')">Test Endpoint</button>
-                    <div class="response" id="users-update-response"></div>
-                </div>
-            </div>
-        </div>
+        </aside>
+
+        <div id="toast" role="status" aria-live="polite"></div>
     </div>
     
     <script>
@@ -389,7 +687,38 @@
         window.addEventListener('DOMContentLoaded', () => {
             checkServerStatus();
             checkDatabaseStatus();
+            populateTokenFromStorage(); // populate token input if stored
         });
+        
+        // Populate users-token input from localStorage (if present)
+        function populateTokenFromStorage() {
+            try {
+                const t = localStorage.getItem('voluntree_token');
+                if (t) {
+                    const el = document.getElementById('users-token');
+                    if (el) el.value = t;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Logout handler: clear localStorage token and clear token inputs
+        function handleLogout() {
+            try {
+                localStorage.removeItem('voluntree_token');
+            } catch (e) {}
+            const tokenInputs = document.querySelectorAll('#users-token');
+            tokenInputs.forEach(i => i.value = '');
+            showToast('Logged out — token cleared');
+        }
+
+        function showToast(msg, ms = 2500) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            t.textContent = msg;
+            t.style.display = 'block';
+            clearTimeout(t.__hideTimeout);
+            t.__hideTimeout = setTimeout(()=> t.style.display = 'none', ms);
+        }
         
         async function checkServerStatus() {
             try {
@@ -433,26 +762,110 @@
             responseDiv.classList.remove('show');
             
             try {
-                const options = {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                };
+                let url = API_BASE_URL + path;
+                const options = { method };
                 
-                if (bodyElementId) {
+                // prepare headers container
+                options.headers = options.headers || {};
+
+                // if a token is present in the users-token input, set Authorization header for protected endpoints
+                const globalTokenInput = document.getElementById('users-token');
+                const globalToken = globalTokenInput ? globalTokenInput.value.trim() : '';
+                if (globalToken) {
+                    options.headers['Authorization'] = 'Bearer ' + globalToken;
+                }
+
+                // If this is the register form, collect parameters and send them as query params
+                if (bodyElementId === 'auth-register-form') {
+                    const params = new URLSearchParams();
+                    const name = document.getElementById('reg-name').value.trim();
+                    const email = document.getElementById('reg-email').value.trim();
+                    const mobile = document.getElementById('reg-mobile').value.trim();
+                    const password = document.getElementById('reg-password').value;
+                    const confirmPassword = document.getElementById('reg-confirmPassword').value;
+
+                    // Build query string (backend reads req.query)
+                    if (name) params.append('name', name);
+                    if (email) params.append('email', email);
+                    if (mobile) params.append('mobile', mobile);
+                    if (password) params.append('password', password);
+                    if (confirmPassword) params.append('confirmPassword', confirmPassword);
+
+                    if (params.toString()) {
+                        url += '?' + params.toString();
+                    }
+                    // no body required; backend expects params in req.query
+                // If this is the login form, collect email/password and send as query params
+                } else if (bodyElementId === 'auth-login-form') {
+                    const params = new URLSearchParams();
+                    const email = document.getElementById('login-email').value.trim();
+                    const password = document.getElementById('login-password').value;
+                    if (email) params.append('email', email);
+                    if (password) params.append('password', password);
+                    if (params.toString()) url += '?' + params.toString();
+                    // no body; backend reads req.query
+                // If this is the forgot-password form, send email as query param
+                } else if (bodyElementId === 'forgot-password-form') {
+                    const params = new URLSearchParams();
+                    const email = document.getElementById('forgot-email').value.trim();
+                    if (email) params.append('email', email);
+                    if (params.toString()) url += '?' + params.toString();
+                    // no body; backend reads req.query
+                // If this is the users-token direct button (used for list users), we already set Authorization header above
+                } else if (bodyElementId === 'users-token') {
+                    // nothing else to do, Authorization header is already set if token provided
+                } else if (bodyElementId === 'delete-user-form') {
+                    const id = document.getElementById('delete-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id to delete');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    // Authorization header set above if token provided; fallback to query param if not
+                    if (!options.headers['Authorization']) {
+                        const token = document.getElementById('users-token').value.trim();
+                        if (token) url += '?token=' + encodeURIComponent(token);
+                    }
+                } else if (bodyElementId === 'update-user-form') {
+                    const id = document.getElementById('update-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id to update');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    const params = new URLSearchParams();
+                    const name = document.getElementById('update-name').value.trim();
+                    const email = document.getElementById('update-email').value.trim();
+                    const mobile = document.getElementById('update-mobile').value.trim();
+                    const password = document.getElementById('update-password').value;
+                    if (name) params.append('name', name);
+                    if (email) params.append('email', email);
+                    if (mobile) params.append('mobile', mobile);
+                    if (password) params.append('password', password);
+                    // Authorization header already set above; fallback to token query param if missing
+                    if (params.toString()) {
+                        if (options.headers['Authorization']) {
+                            url += '?' + params.toString();
+                        } else {
+                            // append token too if present
+                            const token = document.getElementById('users-token').value.trim();
+                            if (token) params.append('token', token);
+                            url += '?' + params.toString();
+                        }
+                    } else if (!options.headers['Authorization']) {
+                        const token = document.getElementById('users-token').value.trim();
+                        if (token) url += '?token=' + encodeURIComponent(token);
+                    }
+                } else if (bodyElementId) {
+                    // existing behavior for JSON body textareas
                     const bodyElement = document.getElementById(bodyElementId);
                     const bodyText = bodyElement.value.trim();
                     if (bodyText) {
                         try {
+                            options.headers = options.headers || {};
+                            options.headers['Content-Type'] = 'application/json';
                             options.body = JSON.stringify(JSON.parse(bodyText));
                         } catch (e) {
                             throw new Error('Invalid JSON format');
                         }
                     }
                 }
-                
-                const response = await fetch(API_BASE_URL + path, options);
+
+                const response = await fetch(url, options);
                 const data = await response.json();
                 
                 const statusClass = response.ok ? 'success' : 'error';
@@ -496,6 +909,202 @@
                 }
             }
         }
+        
+        // Accordion toggle logic (added)
+        (function initAccordions(){
+            function togglePanel(toggleEl) {
+                const targetId = toggleEl.getAttribute('data-target');
+                const panel = document.getElementById(targetId);
+                const expanded = toggleEl.classList.contains('collapsed') === false;
+                if (expanded) {
+                    // collapse
+                    toggleEl.classList.add('collapsed');
+                    toggleEl.setAttribute('aria-expanded', 'false');
+                    if (panel) { panel.classList.remove('show'); panel.setAttribute('aria-hidden', 'true'); }
+                } else {
+                    // expand
+                    toggleEl.classList.remove('collapsed');
+                    toggleEl.setAttribute('aria-expanded', 'true');
+                    if (panel) { panel.classList.add('show'); panel.setAttribute('aria-hidden', 'false'); }
+                }
+            }
+
+            document.querySelectorAll('.accordion-toggle').forEach(toggle => {
+                // default collapsed (already set). Add click and keyboard support.
+                toggle.addEventListener('click', () => togglePanel(toggle));
+                toggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        togglePanel(toggle);
+                    }
+                });
+            });
+        })();
+
+        // Helper: decode JWT payload (no verification) safely
+        function parseJwtPayload(token) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) return null;
+                const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                const json = decodeURIComponent(atob(payload).split('').map(c => {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(json);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Toggle admin-only elements based on token role (0 = admin)
+        function updateAdminVisibility() {
+            const tokenInput = document.getElementById('users-token');
+            const roleLabel = document.getElementById('token-role-label');
+            const token = (tokenInput && tokenInput.value.trim()) || localStorage.getItem('voluntree_token') || '';
+            let payload = null;
+            if (token) payload = parseJwtPayload(token);
+            const isAdmin = payload && (Number(payload.role) === 0);
+            roleLabel.textContent = payload ? (Number(payload.role) === 0 ? 'admin (0)' : 'volunteer (1)') : (token ? 'invalid token' : 'none');
+
+            // show/hide admin-only endpoints
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isAdmin ? '' : 'none';
+            });
+
+            // auto-expand users accordion if admin and collapsed
+            const usersToggle = document.querySelector('#accordion-users .accordion-toggle');
+            const usersContent = document.getElementById('users-content');
+            if (isAdmin && usersToggle && usersContent && usersToggle.classList.contains('collapsed')) {
+                usersToggle.classList.remove('collapsed');
+                usersToggle.setAttribute('aria-expanded', 'true');
+                usersContent.classList.add('show');
+                usersContent.setAttribute('aria-hidden', 'false');
+            }
+            // If not admin, collapse users accordion to reduce clutter
+            if (!isAdmin && usersToggle && usersContent && !usersToggle.classList.contains('collapsed')) {
+                usersToggle.classList.add('collapsed');
+                usersToggle.setAttribute('aria-expanded', 'false');
+                usersContent.classList.remove('show');
+                usersContent.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        // Wire token apply button and input changes
+        document.addEventListener('DOMContentLoaded', () => {
+            // run existing init code...
+            try { updateAdminVisibility(); } catch(e) {}
+            const tokenInput = document.getElementById('users-token');
+            if (tokenInput) {
+                tokenInput.addEventListener('input', () => updateAdminVisibility());
+            }
+            const applyBtn = document.getElementById('apply-token-btn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', () => {
+                    const t = document.getElementById('users-token').value.trim();
+                    if (t) localStorage.setItem('voluntree_token', t);
+                    updateAdminVisibility();
+                });
+            }
+        });
+
+        // Users sidebar logic (added)
+        (function(){
+            const sidebar = document.getElementById('usersSidebar');
+            const openBtn = document.getElementById('openUsersSidebar');
+            const closeBtn = document.getElementById('closeUsersSidebar');
+            const refreshBtn = document.getElementById('refreshUsersBtn');
+            const usersLoading = document.getElementById('usersLoading');
+            const usersError = document.getElementById('usersError');
+            const usersTableWrap = document.getElementById('usersTableWrap');
+            const usersTbody = document.getElementById('usersTbody');
+            const usersEmpty = document.getElementById('usersEmpty');
+            const sidebarTokenInput = document.getElementById('sidebar-token');
+            const useDocTokenBtn = document.getElementById('useDocToken');
+
+            function openSidebar(){
+                sidebar.classList.add('open');
+                sidebar.setAttribute('aria-hidden','false');
+                // auto-copy token from docs input if empty
+                if (!sidebarTokenInput.value) {
+                    const docTokenInput = document.getElementById('users-token');
+                    if (docTokenInput && docTokenInput.value) sidebarTokenInput.value = docTokenInput.value;
+                    else {
+                        const saved = localStorage.getItem('voluntree_token');
+                        if (saved) sidebarTokenInput.value = saved;
+                    }
+                }
+                // load users on open
+                fetchUsers();
+            }
+            function closeSidebar(){
+                sidebar.classList.remove('open');
+                sidebar.setAttribute('aria-hidden','true');
+            }
+            openBtn.addEventListener('click', () => {
+                if (sidebar.classList.contains('open')) closeSidebar(); else openSidebar();
+            });
+            closeBtn.addEventListener('click', closeSidebar);
+            refreshBtn.addEventListener('click', fetchUsers);
+            useDocTokenBtn.addEventListener('click', () => {
+                const docToken = (document.getElementById('users-token') || {}).value || localStorage.getItem('voluntree_token') || '';
+                if (docToken) sidebarTokenInput.value = docToken;
+            });
+
+            async function fetchUsers(){
+                usersError.style.display = 'none';
+                usersTableWrap.style.display = 'none';
+                usersEmpty.style.display = 'none';
+                usersLoading.style.display = 'block';
+                usersLoading.textContent = 'Loading users...';
+
+                const token = sidebarTokenInput.value.trim();
+                if (!token) {
+                    usersLoading.style.display = 'none';
+                    usersError.style.display = 'block';
+                    usersError.textContent = 'Token missing. Paste admin token above.';
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/auth/users', {
+                        method: 'GET',
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        const msg = data && data.message ? data.message : res.statusText;
+                        usersLoading.style.display = 'none';
+                        usersError.style.display = 'block';
+                        usersError.textContent = `Error: ${msg}`;
+                        return;
+                    }
+                    const users = (data && data.data) || [];
+                    usersTbody.innerHTML = '';
+                    if (!users || users.length === 0) {
+                        usersLoading.style.display = 'none';
+                        usersEmpty.style.display = 'block';
+                        return;
+                    }
+                    for (const u of users) {
+                        const tr = document.createElement('tr');
+                        const roleLabel = (v) => (Number(v) === 0 ? 'admin' : 'volunteer');
+                        tr.innerHTML = `<td>${u.id}</td><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.mobile || u.phone || '')}</td><td>${roleLabel(u.role)}</td><td>${u.is_active == 1 ? 'Yes' : 'No'}</td>`;
+                        usersTbody.appendChild(tr);
+                    }
+                    usersLoading.style.display = 'none';
+                    usersTableWrap.style.display = 'block';
+                } catch (err) {
+                    usersLoading.style.display = 'none';
+                    usersError.style.display = 'block';
+                    usersError.textContent = 'Network error';
+                }
+            }
+
+            function escapeHtml(s) {
+                if (s === null || s === undefined) return '';
+                return String(s).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+            }
+        })();
     </script>
 </body>
 </html>

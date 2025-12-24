@@ -49,8 +49,33 @@ app.get('/apis-docs', (req, res) => {
 app.use('/api/health', require('./routes/health'));
 
 // API Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✅ Auth routes registered');
+} catch (error) {
+  console.error('❌ Error loading auth routes:', error);
+}
+
+try {
+  app.use('/api/users', require('./routes/users'));
+  console.log('✅ Users routes registered');
+} catch (error) {
+  console.error('❌ Error loading users routes:', error);
+}
+
+try {
+  app.use('/api/permissions', require('./routes/permissions'));
+  console.log('✅ Permissions routes registered');
+} catch (error) {
+  console.error('❌ Error loading permissions routes:', error);
+}
+
+try {
+  app.use('/api/roles', require('./routes/roles'));
+  console.log('✅ Roles routes registered');
+} catch (error) {
+  console.error('❌ Error loading roles routes:', error);
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -61,11 +86,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - must be last
 app.use((req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.path}`);
+  // Don't log 404 for static files or favicon
+  if (!req.path.includes('.') && req.path !== '/favicon.ico') {
+    console.log(`   Available API routes: /api/auth, /api/users, /api/permissions, /api/roles`);
+  }
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
   });
 });
 

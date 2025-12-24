@@ -27,9 +27,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect on 401 (unauthorized), not 403 (forbidden)
+    // 403 errors should be handled by individual components
     if (error.response?.status === 401) {
       // Handle unauthorized access
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

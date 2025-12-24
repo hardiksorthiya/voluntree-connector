@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — Voluntree</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;padding:24px}
+    .card{max-width:420px;margin:48px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    h1{font-size:20px;margin-bottom:6px;color:#222}
+    p{color:#666;margin-bottom:18px}
+    .input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin-bottom:12px;font-size:14px}
+    .btn{display:inline-block;padding:10px 14px;border-radius:6px;background:#2f80ed;color:#fff;border:0;cursor:pointer;font-weight:600}
+    .small{font-size:13px;color:#555;margin-top:10px}
+    pre{background:#f3f4f6;padding:10px;border-radius:6px;overflow:auto;font-size:13px}
+    .row{display:flex;gap:8px}
+    .btn-ghost{background:#eef2ff;color:#2f80ed;border:1px solid #dbeafe}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Sign in</h1>
+    <p>Use the same page for admin or volunteer. Enter email and password.</p>
+
+    <label>Email</label>
+    <input id="email" class="input" type="email" placeholder="john@example.com" />
+
+    <label>Password</label>
+    <input id="password" class="input" type="password" placeholder="password123" />
+
+    <div class="row" style="margin-top:8px;">
+      <button id="loginBtn" class="btn">Login</button>
+      <button id="clearBtn" class="btn-ghost">Clear</button>
+    </div>
+
+    <div id="msg" class="small" aria-live="polite"></div>
+
+    <h3 style="margin-top:18px;font-size:14px;">Response</h3>
+    <div id="response" style="margin-top:8px">
+      <pre id="responsePre">No response yet</pre>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button id="copyToken" class="btn-ghost">Copy token</button>
+      <button id="storeToken" class="btn-ghost">Store token (localStorage)</button>
+    </div>
+  </div>
+
+  <script>
+    const loginBtn = document.getElementById('loginBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyToken');
+    const storeBtn = document.getElementById('storeToken');
+    const responsePre = document.getElementById('responsePre');
+    const msg = document.getElementById('msg');
+
+    function roleLabel(role) {
+      // numeric role: 0 = admin, 1 = volunteer
+      if (role === 0 || role === '0') return 'admin';
+      if (role === 1 || role === '1') return 'volunteer';
+      return String(role);
+    }
+
+    loginBtn.addEventListener('click', async () => {
+      msg.textContent = '';
+      responsePre.textContent = 'Loading...';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) {
+        msg.textContent = 'Provide email and password';
+        responsePre.textContent = 'No response';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        // show pretty response
+        responsePre.textContent = JSON.stringify(data, null, 2);
+
+        if (res.ok && data.success && data.token) {
+          msg.textContent = 'Login successful. Token available below.';
+          // include friendly user info summary
+          const user = data.data || {};
+          const info = {
+            name: user.name,
+            email: user.email,
+            mobile: user.phone || user.mobile,
+            role: roleLabel(user.role ?? user.role) // tolerant access
+          };
+          responsePre.textContent = JSON.stringify({ token: data.token, user: info }, null, 2);
+        } else {
+          msg.textContent = 'Login failed: ' + (data.message || res.statusText || 'Unknown');
+        }
+      } catch (err) {
+        responsePre.textContent = String(err);
+        msg.textContent = 'Network error';
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+      responsePre.textContent = 'No response yet';
+      msg.textContent = '';
+    });
+
+    copyBtn.addEventListener('click', () => {
+      try {
+        const text = responsePre.textContent || '';
+        const tokenMatch = text.match(/"token"\s*:\s*"([^"]+)"/);
+        const token = tokenMatch ? tokenMatch[1] : null;
+        if (!token) { msg.textContent = 'No token found in response'; return; }
+        navigator.clipboard.writeText(token);
+        msg.textContent = 'Token copied to clipboard';
+      } catch (e) { msg.textContent = 'Copy failed'; }
+    });
+
+    storeBtn.addEventListener('click', () => {
+      try {
+        const text = responsePre.textContent || '';
+        const tokenMatch = text.match(/"token"\s*:\s*"([^"]+)"/);
+        const token = tokenMatch ? tokenMatch[1] : null;
+        if (!token) { msg.textContent = 'No token found in response'; return; }
+        localStorage.setItem('voluntree_token', token);
+        msg.textContent = 'Token saved to localStorage (voluntree_token)';
+      } catch (e) { msg.textContent = 'Store failed'; }
+    });
+  </script>
+</body>
+</html>
