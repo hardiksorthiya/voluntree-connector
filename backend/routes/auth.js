@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
     // Accept params from query for frontend convenience, but fall back to body
     const name = req.query.name || req.body.name;
     const email = req.query.email || req.body.email;
-    const mobile = req.query.mobile || req.body.mobile; // renamed from phone -> mobile
+    const mobile = req.query.mobile || req.body.mobile || req.query.phone || req.body.phone; // Accept both mobile and phone
     const password = req.query.password || req.body.password;
     const confirmPassword = req.query.confirmPassword || req.body.confirmPassword;
     

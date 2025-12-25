@@ -83,13 +83,54 @@
   --shadow-button: 0 4px 12px rgba(37, 99, 235, 0.3);
   --shadow-button-hover: 0 6px 16px rgba(37, 99, 235, 0.4);
   
-  /* Purple Brand Colors */
-  --color-purple: #7c3aed;
-  --color-purple-dark: #6d28d9;
-  --color-purple-light: #8b5cf6;
-  --color-purple-gradient-start: #8b5cf6;
-  --color-purple-gradient-end: #6d28d9;
+
+  
+  /* Background Colors */
   --color-active-bg: #f3f4f6;
   --color-mobile-app-bg: #e0f2fe;
+  --color-page-bg-start: #e0f2fe;
+  --color-page-bg-middle: #dbeafe;
+  --color-page-bg-end: #bfdbfe;
+  --color-page-bg-gradient: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #bfdbfe 100%);
+  
+  /* Table Colors */
+  --color-table-header-bg: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-middle) 50%, var(--gradient-end) 100%);
+  --color-table-header-text: #ffffff;
+  --color-table-row-hover: #f9fafb;
+  --color-table-border: #e5e7eb;
+  --color-table-row-border: #f3f4f6;
+  
+  /* Badge Colors */
+  --color-badge-admin-bg: #dbeafe;
+  --color-badge-admin-text: #1e40af;
+  --color-badge-volunteer-bg: #f0fdf4;
+  --color-badge-volunteer-text: #166534;
+  --color-badge-system-bg: #dbeafe;
+  --color-badge-system-text: #1e40af;
+  --color-badge-custom-bg: #f0fdf4;
+  --color-badge-custom-text: #166534;
+  
+  /* Status Badge Colors */
+  --color-status-active-bg: #d1fae5;
+  --color-status-active-text: #065f46;
+  --color-status-active-border: #6ee7b7;
+  --color-status-inactive-bg: #fee2e2;
+  --color-status-inactive-text: #991b1b;
+  --color-status-inactive-border: #fca5a5;
+  
+  /* Scrollbar Colors */
+  --color-scrollbar-track: #f1f5f9;
+  --color-scrollbar-thumb: #cbd5e1;
+  --color-scrollbar-thumb-hover: #94a3b8;
+  
+  /* Selected/Hover States */
+  --color-selected-bg: #eff6ff;
+  --color-selected-border: var(--color-primary);
+  --color-selected-border-hover: var(--color-primary-dark);
+  
+  /* Modal Colors */
+  --color-modal-overlay: rgba(0, 0, 0, 0.6);
+  --color-modal-header-bg: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+  --color-modal-border: #f3f4f6;
 }
 

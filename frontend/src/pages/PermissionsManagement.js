@@ -6,6 +6,7 @@ import '../css/PermissionsManagement.css';
 const PermissionsManagement = () => {
 	const navigate = useNavigate();
 	const [permissions, setPermissions] = useState([]);
+	const [roles, setRoles] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [success, setSuccess] = useState('');
@@ -25,8 +26,20 @@ const PermissionsManagement = () => {
 			return;
 		}
 
+		fetchRoles();
 		fetchPermissions();
 	}, [navigate]);
+
+	const fetchRoles = async () => {
+		try {
+			const response = await api.get('/roles');
+			if (response.data.success) {
+				setRoles(response.data.data || []);
+			}
+		} catch (err) {
+			console.error('Error fetching roles:', err);
+		}
+	};
 
 	const fetchPermissions = async () => {
 		setLoading(true);
@@ -96,8 +109,11 @@ const PermissionsManagement = () => {
 		}
 	};
 
-	const getRoleName = (roleNumber) => {
-		return roleNumber === 0 ? 'Admin' : 'Volunteer';
+	const getRoleName = (roleId) => {
+		const role = roles.find(r => r.id === roleId);
+		if (role) return role.name;
+		// Fallback for legacy roles
+		return roleId === 0 ? 'Admin' : roleId === 1 ? 'Volunteer' : 'Unknown';
 	};
 
 	if (loading) {

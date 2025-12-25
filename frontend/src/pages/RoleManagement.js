@@ -214,7 +214,7 @@ const RoleManagement = () => {
 	if (loading) {
 		return (
 			<div className="roles-container">
-				<div className="loading">Loading roles...</div>
+				<div className="roles-loading">Loading roles...</div>
 			</div>
 		);
 	}
@@ -234,12 +234,12 @@ const RoleManagement = () => {
 				</div>
 
 				{error && (
-					<div className="error-message">
+					<div className="roles-error-message">
 						<strong>Error:</strong> {error}
 					</div>
 				)}
 				{success && (
-					<div className="success-message">
+					<div className="roles-success-message">
 						{success}
 					</div>
 				)}
@@ -270,7 +270,13 @@ const RoleManagement = () => {
 											<div className="role-name-cell">
 												<div className="role-name">
 													{role.name}
-													{role.is_system_role && (
+													{role.id === 0 && (
+														<span className="system-badge" style={{ background: '#dc2626', color: '#fff' }}>Admin (ID: 0)</span>
+													)}
+													{role.id === 1 && (
+														<span className="system-badge" style={{ background: '#16a34a', color: '#fff' }}>Volunteer (ID: 1)</span>
+													)}
+													{role.id !== 0 && role.id !== 1 && role.is_system_role && (
 														<span className="system-badge">System</span>
 													)}
 												</div>
@@ -283,7 +289,9 @@ const RoleManagement = () => {
 										</td>
 										<td>
 											<span className={`role-type ${role.is_system_role ? 'system' : 'custom'}`}>
-												{role.is_system_role ? 'System Role' : 'Custom Role'}
+												{role.id === 0 ? 'Admin Role (Cannot Delete)' : 
+												 role.id === 1 ? 'Volunteer Role (Cannot Delete)' :
+												 role.is_system_role ? 'System Role' : 'Custom Role'}
 											</span>
 										</td>
 										<td>
@@ -302,16 +310,29 @@ const RoleManagement = () => {
 												<button
 													onClick={() => handleOpenModal(role)}
 													className="edit-btn"
+													title={role.id === 0 ? 'Admin: Can edit description and permissions only' : role.id === 1 ? 'Volunteer: Can edit description and permissions only' : 'Edit role'}
 												>
 													Edit
 												</button>
-												{!role.is_system_role && (
+												{/* Only show delete button for custom roles (not Admin id:0 or Volunteer id:1) */}
+												{role.id !== 0 && role.id !== 1 && (
 													<button
 														onClick={() => handleDelete(role)}
 														className="delete-btn"
+														title="Delete custom role"
 													>
 														Delete
 													</button>
+												)}
+												{(role.id === 0 || role.id === 1) && (
+													<span style={{ 
+														fontSize: '12px', 
+														color: '#6b7280', 
+														marginLeft: '8px',
+														fontStyle: 'italic'
+													}}>
+														Protected
+													</span>
 												)}
 											</div>
 										</td>
@@ -326,89 +347,121 @@ const RoleManagement = () => {
 			{/* Create/Edit Modal */}
 			{isModalOpen && (
 				<div 
-					className="modal-overlay" 
+					className="roles-modal-overlay" 
 					onClick={handleCloseModal}
 				>
 					<div 
-						className="modal-content" 
+						className="roles-modal-content" 
 						onClick={(e) => e.stopPropagation()}
 					>
-						<div className="modal-header">
+						<div className="roles-modal-header">
 							<h2>{editingRole ? 'Edit Role' : 'Create New Role'}</h2>
 							<button
 								onClick={handleCloseModal}
-								className="modal-close-btn"
+								className="roles-modal-close-btn"
 							>
 								×
 							</button>
 						</div>
 
 						<form onSubmit={handleSubmit}>
-							<div className="form-group">
-								<label>
+							<div className="roles-form-group">
+								<label htmlFor="role-name">
 									Role Name *
 								</label>
 								<input
+									id="role-name"
 									type="text"
 									value={formData.name}
 									onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-									disabled={editingRole?.is_system_role}
+									disabled={editingRole?.id === 0 || editingRole?.id === 1}
+									placeholder="e.g., Manager, Editor, Viewer"
 									required
 								/>
+								{(editingRole?.id === 0 || editingRole?.id === 1) && (
+									<small style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px', display: 'block' }}>
+										{editingRole?.id === 0 ? 'Admin role cannot be renamed' : 'Volunteer role cannot be renamed'}
+									</small>
+								)}
 							</div>
 
-							<div className="form-group">
-								<label>
+							<div className="roles-form-group">
+								<label htmlFor="role-description">
 									Description
 								</label>
 								<textarea
+									id="role-description"
 									value={formData.description}
 									onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+									placeholder="Provide a brief description of this role's purpose and responsibilities..."
+									rows={4}
 								/>
 							</div>
 
-							<div className="form-group">
+							<div className="roles-form-group">
 								<label>
 									Permissions
+									<span style={{ 
+										marginLeft: '8px', 
+										fontSize: '13px', 
+										fontWeight: '400', 
+										color: '#6b7280' 
+									}}>
+										({formData.permissions.filter(p => p.has_access).length} of {availablePermissions.length} selected)
+									</span>
 								</label>
-								<div className="permissions-list">
-									{availablePermissions.map((perm) => {
-										const hasAccess = formData.permissions.find(p => p.permission_key === perm.permission_key)?.has_access || false;
-										return (
-											<div
-												key={perm.permission_key}
-												className="permission-item"
-												onClick={() => handlePermissionToggle(perm.permission_key)}
-											>
-												<input
-													type="checkbox"
-													checked={hasAccess}
-													onChange={() => handlePermissionToggle(perm.permission_key)}
-												/>
-												<div className="permission-item-info">
-													<div className="permission-item-name">{perm.permission_name}</div>
-													<div className="permission-item-desc">
-														{perm.description || perm.permission_key}
+								{availablePermissions.length === 0 ? (
+									<div style={{ 
+										padding: '20px', 
+										textAlign: 'center', 
+										color: '#6b7280',
+										background: '#f9fafb',
+										borderRadius: '12px',
+										border: '2px dashed #e5e7eb'
+									}}>
+										No permissions available
+									</div>
+								) : (
+									<div className="permissions-list">
+										{availablePermissions.map((perm) => {
+											const hasAccess = formData.permissions.find(p => p.permission_key === perm.permission_key)?.has_access || false;
+											return (
+												<div
+													key={perm.permission_key}
+													className={`permission-item ${hasAccess ? 'permission-item-selected' : ''}`}
+													onClick={() => handlePermissionToggle(perm.permission_key)}
+												>
+													<input
+														type="checkbox"
+														checked={hasAccess}
+														onChange={() => handlePermissionToggle(perm.permission_key)}
+														onClick={(e) => e.stopPropagation()}
+													/>
+													<div className="permission-item-info">
+														<div className="permission-item-name">{perm.permission_name}</div>
+														<div className="permission-item-desc">
+															{perm.description || perm.permission_key}
+														</div>
 													</div>
 												</div>
-											</div>
-										);
-									})}
-								</div>
+											);
+										})}
+									</div>
+								)}
 							</div>
 
 							{error && (
-								<div className="error-message">
+								<div className="roles-error-message">
 									{error}
 								</div>
 							)}
 							{success && (
-								<div className="success-message">
+								<div className="roles-success-message">
 									{success}
 								</div>
 							)}
 
-							<div className="modal-actions">
+							<div className="roles-modal-actions">
 								<button
 									type="button"
 									onClick={handleCloseModal}

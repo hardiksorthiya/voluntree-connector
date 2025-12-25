@@ -42,7 +42,7 @@ const Register = () => {
       const response = await api.post('/auth/register', {
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        mobile: formData.phone,
         password: formData.password,
         confirmPassword: formData.confirmPassword
       });

@@ -213,11 +213,19 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     
     const role = roles[0];
     
-    // System roles cannot be modified in certain ways
-    if (role.is_system_role && (name !== undefined || is_active === false)) {
+    // Admin role (id: 0) cannot be modified (name, description, or deactivated)
+    if (roleId === 0 && (name !== undefined || is_active === false)) {
       return res.status(400).json({
         success: false,
-        message: 'System roles cannot be renamed or deactivated'
+        message: 'Admin role cannot be renamed or deactivated'
+      });
+    }
+    
+    // Volunteer role (id: 1) cannot be renamed or deactivated, but can edit description and permissions
+    if (roleId === 1 && (name !== undefined || is_active === false)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Volunteer role cannot be renamed or deactivated, but you can edit its description and permissions'
       });
     }
     
@@ -225,7 +233,8 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     const updates = [];
     const values = [];
     
-    if (name !== undefined && name.trim() !== '') {
+    // Only allow name change for custom roles (not Admin id:0 or Volunteer id:1)
+    if (name !== undefined && name.trim() !== '' && roleId !== 0 && roleId !== 1) {
       // Check if new name conflicts with existing role
       const [existing] = await db.promise.execute(
         'SELECT id FROM roles WHERE name = ? AND id != ?',
@@ -243,12 +252,14 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
       values.push(name.trim());
     }
     
+    // Allow description update for all roles (including Volunteer id:1)
     if (description !== undefined) {
       updates.push('description = ?');
       values.push(description);
     }
     
-    if (is_active !== undefined && !role.is_system_role) {
+    // Only allow is_active change for custom roles (not Admin id:0 or Volunteer id:1)
+    if (is_active !== undefined && roleId !== 0 && roleId !== 1) {
       updates.push('is_active = ?');
       values.push(is_active);
     }
@@ -329,11 +340,19 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     
     const role = roles[0];
     
-    // System roles cannot be deleted
-    if (role.is_system_role) {
+    // Admin role (id: 0) cannot be deleted
+    if (roleId === 0) {
       return res.status(400).json({
         success: false,
-        message: 'System roles cannot be deleted'
+        message: 'Admin role cannot be deleted'
+      });
+    }
+    
+    // Volunteer role (id: 1) cannot be deleted
+    if (roleId === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Volunteer role cannot be deleted'
       });
     }
     

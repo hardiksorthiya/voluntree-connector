@@ -384,38 +384,9 @@
 </head>
 <body>
     <div class="layout">
-        <div class="sidebar" aria-label="Sidebar">
-            <div class="brand">📚 Voluntree</div>
-            <div class="nav">
-                <button onclick="document.getElementById('auth-content')?.classList.add('show');window.scrollTo({top:0,behavior:'smooth'})">API Docs</button>
-                <button id="logoutBtn" class="logout" onclick="handleLogout()">Logout</button>
-            </div>
-            <div style="margin-top:14px;font-size:13px;color:#666;">
-                Login token stored in localStorage as <code>voluntree_token</code>.
-            </div>
-        </div>
+       
         <div style="flex:1">
             <div class="container">
-                <div class="header">
-                    <h1>🤝 Volunteer Connect API Documentation</h1>
-                    <p>Test and verify all API endpoints</p>
-                    <div style="margin-top:12px;">
-                        <a href="/login.html" target="_blank" style="display:inline-block;padding:8px 12px;background:#2f80ed;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">Open Login Page</a>
-                        <!-- Users sidebar toggle button (added) -->
-                        <button id="openUsersSidebar" class="users-sidebar-toggle" type="button">Users</button>
-                    </div>
-                    <div class="status-bar">
-                        <div class="status-item status-server">
-                            <span id="server-status">Checking...</span>
-                        </div>
-                        <div class="status-item status-db">
-                            <span id="db-status">Checking...</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <button class="test-all-btn" onclick="testAllEndpoints()">🚀 Test All Endpoints</button>
-
                 <!-- Authentication APIs (now inside accordion) -->
                 <div class="accordion" id="accordion-authentication">
                     <div class="accordion-toggle collapsed" data-target="auth-content" role="button" aria-expanded="false" tabindex="0">
@@ -539,13 +510,45 @@
                                 </div>
                             </div>
                             
-                            <!-- List all users (admin-only) -->
+                            <!-- List all users (admin-only) - New endpoint -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method get">GET</span>
+                                    <span class="endpoint-path">/api/users</span>
+                                </div>
+                                <div class="endpoint-desc">List all users (Admin only - Requires user_management permission)</div>
+                                <div class="endpoint-body">
+                                    <button class="btn-test" onclick="testEndpoint('GET', '/api/users', null, 'users-list-all-response')">Test Endpoint</button>
+                                    <div class="response" id="users-list-all-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Get user by ID -->
+                            <div class="endpoint">
+                                <div class="endpoint-header">
+                                    <span class="method get">GET</span>
+                                    <span class="endpoint-path">/api/users/:id</span>
+                                </div>
+                                <div class="endpoint-desc">Get user by ID (You can view your own profile, or admin can view any user)</div>
+                                <div class="endpoint-body">
+                                    <div id="get-user-by-id-form">
+                                        <div class="input-group">
+                                            <label>User ID</label>
+                                            <input id="get-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('GET', '/api/users/:id', 'get-user-by-id-form', 'users-get-by-id-response')">Test Endpoint</button>
+                                    <div class="response" id="users-get-by-id-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- List all users (admin-only) - Old endpoint -->
                             <div class="endpoint admin-only">
                                 <div class="endpoint-header">
                                     <span class="method get">GET</span>
                                     <span class="endpoint-path">/api/auth/users</span>
                                 </div>
-                                <div class="endpoint-desc">List all users (requires token)</div>
+                                <div class="endpoint-desc">List all users (requires token) - Legacy endpoint</div>
                                 <div class="endpoint-body">
                                     <button class="btn-test" onclick="testEndpoint('GET', '/api/auth/users', 'users-token', 'users-list-response')">Test Endpoint</button>
                                     <div class="response" id="users-list-response"></div>
@@ -628,12 +631,120 @@
                                 </div>
                                 <div class="endpoint-desc">Update current user profile (requires authentication)</div>
                                 <div class="endpoint-body">
-                                    <div class="input-group">
-                                        <label>Request Body (JSON):</label>
-                                        <textarea id="users-update-body" placeholder='{"name": "John Doe", "phone": "123-456-7890"}'></textarea>
+                                    <div id="update-me-form">
+                                        <div class="input-group">
+                                            <label>Name</label>
+                                            <input id="update-me-name" type="text" placeholder="New name (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Phone</label>
+                                            <input id="update-me-phone" type="text" placeholder="New phone (optional)" />
+                                        </div>
                                     </div>
-                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/me', 'users-update-body', 'users-update-response')">Test Endpoint</button>
-                                    <div class="response" id="users-update-response"></div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/me', 'update-me-form', 'users-update-me-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-me-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Update user role (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method put">PUT</span>
+                                    <span class="endpoint-path">/api/users/:id/role</span>
+                                </div>
+                                <div class="endpoint-desc">Update user role (Admin only) - Set role to 0 (admin) or 1 (volunteer)</div>
+                                <div class="endpoint-body">
+                                    <div id="update-user-role-form">
+                                        <div class="input-group">
+                                            <label>User ID</label>
+                                            <input id="update-role-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Role</label>
+                                            <select id="update-role-value" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                                <option value="0">Admin (0)</option>
+                                                <option value="1">Volunteer (1)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/:id/role', 'update-user-role-form', 'users-update-role-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-role-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Update user details (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method put">PUT</span>
+                                    <span class="endpoint-path">/api/users/:id</span>
+                                </div>
+                                <div class="endpoint-desc">Update user details (Admin only) - Update name, email, phone</div>
+                                <div class="endpoint-body">
+                                    <div id="update-user-details-form">
+                                        <div class="input-group">
+                                            <label>User ID to Update</label>
+                                            <input id="update-details-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Name</label>
+                                            <input id="update-details-name" type="text" placeholder="New name (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Email</label>
+                                            <input id="update-details-email" type="email" placeholder="New email (optional)" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Phone</label>
+                                            <input id="update-details-phone" type="text" placeholder="New phone (optional)" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/:id', 'update-user-details-form', 'users-update-details-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-details-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle user status (admin-only) -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method put">PUT</span>
+                                    <span class="endpoint-path">/api/users/:id/status</span>
+                                </div>
+                                <div class="endpoint-desc">Toggle user active/inactive status (Admin only)</div>
+                                <div class="endpoint-body">
+                                    <div id="update-user-status-form">
+                                        <div class="input-group">
+                                            <label>User ID</label>
+                                            <input id="update-status-user-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Is Active</label>
+                                            <select id="update-status-is-active" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                                                <option value="true">Active (true)</option>
+                                                <option value="false">Inactive (false)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('PUT', '/api/users/:id/status', 'update-user-status-form', 'users-update-status-response')">Test Endpoint</button>
+                                    <div class="response" id="users-update-status-response"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Delete user (admin-only) - New endpoint -->
+                            <div class="endpoint admin-only">
+                                <div class="endpoint-header">
+                                    <span class="method delete">DELETE</span>
+                                    <span class="endpoint-path">/api/users/:id</span>
+                                </div>
+                                <div class="endpoint-desc">Delete user (Admin only) - Cannot delete own account</div>
+                                <div class="endpoint-body">
+                                    <div id="delete-user-new-form">
+                                        <div class="input-group">
+                                            <label>User ID to Delete</label>
+                                            <input id="delete-user-new-id" type="text" placeholder="Enter user id" />
+                                        </div>
+                                    </div>
+                                    <button class="btn-test" onclick="testEndpoint('DELETE', '/api/users/:id', 'delete-user-new-form', 'users-delete-new-response')">Test Endpoint</button>
+                                    <div class="response" id="users-delete-new-response"></div>
                                 </div>
                             </div>
                         </div>
@@ -850,17 +961,66 @@
                         const token = document.getElementById('users-token').value.trim();
                         if (token) url += '?token=' + encodeURIComponent(token);
                     }
+                } else if (bodyElementId === 'get-user-by-id-form') {
+                    const id = document.getElementById('get-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    // Authorization header set above if token provided
+                } else if (bodyElementId === 'update-user-role-form') {
+                    const id = document.getElementById('update-role-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    const roleValue = document.getElementById('update-role-value').value;
+                    const bodyData = { role: parseInt(roleValue) };
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(bodyData);
+                } else if (bodyElementId === 'update-user-details-form') {
+                    const id = document.getElementById('update-details-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id to update');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    const bodyData = {};
+                    const name = document.getElementById('update-details-name').value.trim();
+                    const email = document.getElementById('update-details-email').value.trim();
+                    const phone = document.getElementById('update-details-phone').value.trim();
+                    if (name) bodyData.name = name;
+                    if (email) bodyData.email = email;
+                    if (phone) bodyData.phone = phone;
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(bodyData);
+                } else if (bodyElementId === 'update-user-status-form') {
+                    const id = document.getElementById('update-status-user-id').value.trim();
+                    if (!id) throw new Error('Please provide user id');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    const isActiveValue = document.getElementById('update-status-is-active').value;
+                    const bodyData = { is_active: isActiveValue === 'true' };
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(bodyData);
+                } else if (bodyElementId === 'delete-user-new-form') {
+                    const id = document.getElementById('delete-user-new-id').value.trim();
+                    if (!id) throw new Error('Please provide user id to delete');
+                    url = API_BASE_URL + path.replace(':id', encodeURIComponent(id));
+                    // Authorization header set above if token provided
+                } else if (bodyElementId === 'update-me-form') {
+                    const bodyData = {};
+                    const name = document.getElementById('update-me-name').value.trim();
+                    const phone = document.getElementById('update-me-phone').value.trim();
+                    if (name) bodyData.name = name;
+                    if (phone) bodyData.phone = phone;
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(bodyData);
                 } else if (bodyElementId) {
-                    // existing behavior for JSON body textareas
+                    // existing behavior for JSON body textareas (for backward compatibility)
                     const bodyElement = document.getElementById(bodyElementId);
-                    const bodyText = bodyElement.value.trim();
-                    if (bodyText) {
-                        try {
-                            options.headers = options.headers || {};
-                            options.headers['Content-Type'] = 'application/json';
-                            options.body = JSON.stringify(JSON.parse(bodyText));
-                        } catch (e) {
-                            throw new Error('Invalid JSON format');
+                    if (bodyElement && bodyElement.tagName === 'TEXTAREA') {
+                        const bodyText = bodyElement.value.trim();
+                        if (bodyText) {
+                            try {
+                                options.headers = options.headers || {};
+                                options.headers['Content-Type'] = 'application/json';
+                                options.body = JSON.stringify(JSON.parse(bodyText));
+                            } catch (e) {
+                                throw new Error('Invalid JSON format');
+                            }
                         }
                     }
                 }

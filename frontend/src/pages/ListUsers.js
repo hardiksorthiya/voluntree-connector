@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../config/api';
-import { SearchIcon, EditIcon, UserIcon } from '../components/Icons';
+import { SearchIcon, EditIcon, UserIcon, TrashIcon } from '../components/Icons';
 import RoleEditModal from '../components/RoleEditModal';
+import UserEditModal from '../components/UserEditModal';
 import '../css/UsersList.css';
 
 const UsersList = () => {
 	const navigate = useNavigate();
 	const [users, setUsers] = useState([]);
+	const [roles, setRoles] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 	const [search, setSearch] = useState('');
 	const [selectedUser, setSelectedUser] = useState(null);
 	const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [success, setSuccess] = useState('');
+	const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
 	useEffect(() => {
 		const token = localStorage.getItem('token');
@@ -21,8 +26,21 @@ const UsersList = () => {
 			return;
 		}
 
+		fetchRoles();
 		checkPermissionAndFetchUsers();
 	}, [navigate]);
+
+	const fetchRoles = async () => {
+		try {
+			const response = await api.get('/roles');
+			if (response.data.success) {
+				setRoles(response.data.data || []);
+			}
+		} catch (err) {
+			console.error('Error fetching roles:', err);
+			// Don't show error to user, just log it - roles will use fallback
+		}
+	};
 
 	const checkPermissionAndFetchUsers = async () => {
 		try {
@@ -108,14 +126,76 @@ const UsersList = () => {
 
 	const handleRoleUpdate = () => {
 		fetchUsers();
+		setSuccess('Role updated successfully!');
+		setTimeout(() => setSuccess(''), 3000);
 	};
 
-	const getRoleName = (role) => {
-		return role === 0 ? 'Admin' : 'Volunteer';
+	const handleEditUser = (user) => {
+		setSelectedUser(user);
+		setIsEditModalOpen(true);
 	};
 
-	const getRoleBadgeClass = (role) => {
-		return role === 0 ? 'role-badge-admin' : 'role-badge-volunteer';
+	const handleUserUpdate = () => {
+		fetchUsers();
+		setSuccess('User updated successfully!');
+		setTimeout(() => setSuccess(''), 3000);
+	};
+
+	const handleToggleStatus = async (user) => {
+		if (!window.confirm(`Are you sure you want to ${user.is_active ? 'deactivate' : 'activate'} ${user.name}?`)) {
+			return;
+		}
+
+		try {
+			const response = await api.put(`/users/${user.id}/status`, {
+				is_active: !user.is_active
+			});
+
+			if (response.data.success) {
+				setSuccess(response.data.message);
+				fetchUsers();
+				setTimeout(() => setSuccess(''), 3000);
+			}
+		} catch (err) {
+			setError(err.response?.data?.message || 'Failed to update user status');
+			setTimeout(() => setError(''), 5000);
+		}
+	};
+
+	const handleDeleteUser = async (user) => {
+		if (!window.confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+			return;
+		}
+
+		try {
+			const response = await api.delete(`/users/${user.id}`);
+
+			if (response.data.success) {
+				setSuccess('User deleted successfully!');
+				fetchUsers();
+				setTimeout(() => setSuccess(''), 3000);
+			}
+		} catch (err) {
+			setError(err.response?.data?.message || 'Failed to delete user');
+			setTimeout(() => setError(''), 5000);
+		}
+	};
+
+	const getRoleName = (roleId) => {
+		const role = roles.find(r => r.id === roleId);
+		if (role) return role.name;
+		// Fallback for legacy roles
+		return roleId === 0 ? 'Admin' : roleId === 1 ? 'Volunteer' : 'Unknown';
+	};
+
+	const getRoleBadgeClass = (roleId) => {
+		const role = roles.find(r => r.id === roleId);
+		if (role) {
+			// Use role name for class (e.g., "admin" -> "role-badge-admin")
+			return `role-badge-${role.name.toLowerCase().replace(/\s+/g, '-')}`;
+		}
+		// Fallback for legacy roles
+		return roleId === 0 ? 'role-badge-admin' : 'role-badge-volunteer';
 	};
 
 	if (loading) {
@@ -154,6 +234,12 @@ const UsersList = () => {
 						border: '1px solid #fecdca'
 					}}>
 						<strong>Error:</strong> {error}
+					</div>
+				)}
+
+				{success && (
+					<div className="success-message">
+						{success}
 					</div>
 				)}
 
@@ -202,19 +288,41 @@ const UsersList = () => {
 										</td>
 
 										<td>
-											<span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
+											<span 
+												className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}
+												onClick={() => handleToggleStatus(user)}
+												style={{ 
+													cursor: currentUser.id === user.id ? 'not-allowed' : 'pointer',
+													opacity: currentUser.id === user.id ? 0.6 : 1
+												}}
+												title={currentUser.id === user.id ? 'Cannot change your own status' : 'Click to toggle status'}
+											>
 												{user.is_active ? 'Active' : 'Inactive'}
 											</span>
 										</td>
 
 										<td>
-											<button
-												className="action-btn"
-												onClick={() => navigate(`/users/${user.id}`)}
-												title="Edit user"
-											>
-												<EditIcon />
-											</button>
+											<div className="action-buttons">
+												<button
+													className="action-btn edit-action-btn"
+													onClick={() => handleEditUser(user)}
+													title="Edit user details"
+												>
+													<EditIcon />
+												</button>
+												<button
+													className="action-btn delete-action-btn"
+													onClick={() => handleDeleteUser(user)}
+													disabled={currentUser.id === user.id}
+													title={currentUser.id === user.id ? 'Cannot delete your own account' : 'Delete user'}
+													style={{ 
+														opacity: currentUser.id === user.id ? 0.5 : 1,
+														cursor: currentUser.id === user.id ? 'not-allowed' : 'pointer'
+													}}
+												>
+													<TrashIcon />
+												</button>
+											</div>
 										</td>
 									</tr>
 								))
@@ -225,15 +333,26 @@ const UsersList = () => {
 			</div>
 
 			{selectedUser && (
-				<RoleEditModal
-					user={selectedUser}
-					isOpen={isRoleModalOpen}
-					onClose={() => {
-						setIsRoleModalOpen(false);
-						setSelectedUser(null);
-					}}
-					onUpdate={handleRoleUpdate}
-				/>
+				<>
+					<RoleEditModal
+						user={selectedUser}
+						isOpen={isRoleModalOpen}
+						onClose={() => {
+							setIsRoleModalOpen(false);
+							setSelectedUser(null);
+						}}
+						onUpdate={handleRoleUpdate}
+					/>
+					<UserEditModal
+						user={selectedUser}
+						isOpen={isEditModalOpen}
+						onClose={() => {
+							setIsEditModalOpen(false);
+							setSelectedUser(null);
+						}}
+						onUpdate={handleUserUpdate}
+					/>
+				</>
 			)}
 		</div>
 	);
