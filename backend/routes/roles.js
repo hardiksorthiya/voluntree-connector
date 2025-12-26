@@ -21,7 +21,15 @@ router.get('/', authenticate, authorize('admin'), async (req, res) => {
     }
     
     const [roles] = await db.promise.execute(
-      'SELECT * FROM roles ORDER BY is_system_role DESC, name ASC'
+      `SELECT * FROM roles 
+       ORDER BY 
+         CASE 
+           WHEN id = 0 THEN 1 
+           WHEN id = 1 THEN 2 
+           WHEN is_system_role = TRUE THEN 3 
+           ELSE 4 
+         END,
+         name ASC`
     );
     
     // Get permissions for each role
@@ -155,10 +163,15 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     if (permissions && Array.isArray(permissions)) {
       for (const perm of permissions) {
         if (perm.permission_key && perm.has_access !== undefined) {
-          await db.promise.execute(
-            'INSERT INTO role_permission_mappings (role_id, permission_key, has_access) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE has_access = ?',
-            [roleId, perm.permission_key, perm.has_access, perm.has_access]
-          );
+          try {
+            await db.promise.execute(
+              'INSERT INTO role_permission_mappings (role_id, permission_key, has_access) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE has_access = ?',
+              [roleId, perm.permission_key, perm.has_access ? 1 : 0, perm.has_access ? 1 : 0]
+            );
+          } catch (insertError) {
+            console.error('Error inserting permission mapping:', insertError);
+            throw insertError;
+          }
         }
       }
     }
@@ -213,20 +226,38 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     
     const role = roles[0];
     
-    // Admin role (id: 0) cannot be modified (name, description, or deactivated)
-    if (roleId === 0 && (name !== undefined || is_active === false)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Admin role cannot be renamed or deactivated'
-      });
+    // Admin role (id: 0) cannot be renamed or deactivated, but can edit description and permissions
+    // Only check if name is actually being changed (different from current name)
+    if (roleId === 0) {
+      if (name !== undefined && name.trim() !== role.name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Admin role cannot be renamed, but you can edit its description and permissions'
+        });
+      }
+      if (is_active === false) {
+        return res.status(400).json({
+          success: false,
+          message: 'Admin role cannot be deactivated, but you can edit its description and permissions'
+        });
+      }
     }
     
     // Volunteer role (id: 1) cannot be renamed or deactivated, but can edit description and permissions
-    if (roleId === 1 && (name !== undefined || is_active === false)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Volunteer role cannot be renamed or deactivated, but you can edit its description and permissions'
-      });
+    // Only check if name is actually being changed (different from current name)
+    if (roleId === 1) {
+      if (name !== undefined && name.trim() !== role.name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Volunteer role cannot be renamed, but you can edit its description and permissions'
+        });
+      }
+      if (is_active === false) {
+        return res.status(400).json({
+          success: false,
+          message: 'Volunteer role cannot be deactivated, but you can edit its description and permissions'
+        });
+      }
     }
     
     // Build update query
@@ -274,21 +305,57 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     
     // Update permissions if provided
     if (permissions && Array.isArray(permissions)) {
+      console.log(`[ROLE UPDATE] Updating permissions for role_id=${roleId}, received ${permissions.length} permissions`);
+      
       // Delete existing permissions for this role
       await db.promise.execute(
         'DELETE FROM role_permission_mappings WHERE role_id = ?',
         [roleId]
       );
+      console.log(`[ROLE UPDATE] Deleted existing permissions for role_id=${roleId}`);
       
-      // Insert new permissions
+      // Insert new permissions (save all permissions, including denied ones)
+      let savedCount = 0;
+      let skippedCount = 0;
       for (const perm of permissions) {
         if (perm.permission_key && perm.has_access !== undefined) {
-          await db.promise.execute(
-            'INSERT INTO role_permission_mappings (role_id, permission_key, has_access) VALUES (?, ?, ?)',
-            [roleId, perm.permission_key, perm.has_access]
-          );
+          // Ensure has_access is converted to boolean/int properly
+          const hasAccess = perm.has_access === true || perm.has_access === 1 || perm.has_access === '1' || perm.has_access === 'true';
+          try {
+            await db.promise.execute(
+              'INSERT INTO role_permission_mappings (role_id, permission_key, has_access) VALUES (?, ?, ?)',
+              [roleId, perm.permission_key, hasAccess ? 1 : 0]
+            );
+            savedCount++;
+            console.log(`[ROLE UPDATE] Saved permission: role_id=${roleId}, permission=${perm.permission_key}, has_access=${hasAccess ? 1 : 0}`);
+          } catch (insertError) {
+            // If duplicate key error, update instead
+            if (insertError.code === 'ER_DUP_ENTRY' || insertError.message.includes('Duplicate entry')) {
+              await db.promise.execute(
+                'UPDATE role_permission_mappings SET has_access = ? WHERE role_id = ? AND permission_key = ?',
+                [hasAccess ? 1 : 0, roleId, perm.permission_key]
+              );
+              savedCount++;
+              console.log(`[ROLE UPDATE] Updated permission: role_id=${roleId}, permission=${perm.permission_key}, has_access=${hasAccess ? 1 : 0}`);
+            } else {
+              console.error(`[ROLE UPDATE] Error saving permission ${perm.permission_key}:`, insertError);
+              throw insertError;
+            }
+          }
+        } else {
+          skippedCount++;
+          console.warn(`[ROLE UPDATE] Skipped invalid permission:`, perm);
         }
       }
+      
+      console.log(`[ROLE UPDATE] Permission save complete: role_id=${roleId}, saved=${savedCount}, skipped=${skippedCount}, total=${permissions.length}`);
+      
+      // Verify permissions were saved correctly
+      const [verifyMappings] = await db.promise.execute(
+        'SELECT COUNT(*) as count FROM role_permission_mappings WHERE role_id = ?',
+        [roleId]
+      );
+      console.log(`[ROLE UPDATE] Verification: role_id=${roleId} has ${verifyMappings[0].count} permission mappings in database`);
     }
     
     // Get updated role with permissions

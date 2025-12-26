@@ -17,7 +17,6 @@ import ListUser from './pages/ListUsers';
 import Activities from './pages/Activities';
 import ActivityDetail from './pages/ActivityDetail';
 import ForgotPassword from './pages/ForgotPassword';
-import PermissionsManagement from './pages/PermissionsManagement';
 import RoleManagement from './pages/RoleManagement';
 
 // Component to conditionally show Sidebar and Header
@@ -38,7 +37,6 @@ const AppContent = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/users" element={<ListUser />} />
-        <Route path="/permissions" element={<PermissionsManagement />} />
         <Route path="/roles" element={<RoleManagement />} />
         <Route path="/chat" element={<Chat />} />
         <Route path="/activities" element={<Activities />} />

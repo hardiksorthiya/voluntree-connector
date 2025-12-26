@@ -24,87 +24,246 @@ const Sidebar = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasUserManagementAccess, setHasUserManagementAccess] = useState(false);
+  const [hasActivityManagementAccess, setHasActivityManagementAccess] = useState(false);
+  const [hasAiChatAccess, setHasAiChatAccess] = useState(false);
 
-  // Get user role
-  const getUserRole = () => {
+  // Get user role and check if admin
+  const getUserInfo = () => {
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        return user.role !== undefined ? Number(user.role) : (user.user_type === 'admin' ? 0 : 1);
+        // Check if user_type is admin (case-insensitive)
+        const isAdminByType = user.user_type && user.user_type.toLowerCase() === 'admin';
+        
+        // Get role - handle null, undefined, string, or number
+        let role = 1; // Default to volunteer
+        if (user.role !== null && user.role !== undefined) {
+          role = Number(user.role);
+        } else if (isAdminByType) {
+          role = 0; // Admin role
+        }
+        
+        // User is admin if role is 0 OR user_type is admin
+        const isAdmin = role === 0 || isAdminByType;
+        
+        return { role, isAdmin };
       } catch (e) {
-        return 1; // Default to volunteer
+        console.error('Error parsing user data:', e);
+        return { role: 1, isAdmin: false };
       }
     }
-    return 1; // Default to volunteer
+    return { role: 1, isAdmin: false };
   };
 
-  const userRole = getUserRole();
-  const isAdmin = userRole === 0;
+  const { role: userRole, isAdmin } = getUserInfo();
+
+  // Function to refresh user data from server
+  const refreshUserData = async () => {
+    try {
+      const response = await api.get('/users/me');
+      if (response.data.success) {
+        localStorage.setItem('user', JSON.stringify(response.data.data));
+        console.log('[SIDEBAR] User data refreshed from server:', response.data.data);
+        return response.data.data;
+      }
+    } catch (err) {
+      console.error('[SIDEBAR] Error refreshing user data:', err);
+    }
+    return null;
+  };
 
   // Check permissions and set menu items
   useEffect(() => {
     if (!token) return;
     
+    // Get current user info to ensure we have the latest role
+    const userData = localStorage.getItem('user');
+    const currentUser = userData ? JSON.parse(userData) : null;
+    const currentRole = currentUser?.role !== undefined ? Number(currentUser.role) : (currentUser?.user_type === 'admin' ? 0 : 1);
+    
+    console.log('[SIDEBAR] Checking permissions for user:', {
+      user_id: currentUser?.id,
+      user_type: currentUser?.user_type,
+      role: currentRole,
+      isAdmin: currentRole === 0
+    });
+    
     const checkPermissions = async () => {
-      let hasAccess = false;
+      // Refresh user data first to ensure we have the latest role
+      const refreshedUser = await refreshUserData();
+      const userToCheck = refreshedUser || currentUser;
+      const userRole = userToCheck?.role !== undefined ? Number(userToCheck.role) : (userToCheck?.user_type === 'admin' ? 0 : 1);
+      
+      console.log('[SIDEBAR] Using role for permission check:', userRole);
+      setLoading(true);
+      // Check all permissions
+      let userMgmtAccess = false;
+      let activityMgmtAccess = false;
+      let aiChatAccess = false;
+      
+      // Check user management permission
       try {
-        // Check user management permission
-        const permissionResponse = await api.get('/permissions/check/user_management');
-        if (permissionResponse.data.success && permissionResponse.data.hasAccess) {
-          hasAccess = true;
+        const userMgmtResponse = await api.get('/permissions/check/user_management');
+        console.log('[SIDEBAR] User Management check response:', userMgmtResponse.data);
+        if (userMgmtResponse.data.success && userMgmtResponse.data.hasAccess) {
+          userMgmtAccess = true;
+          console.log('✅ User Management permission: GRANTED');
+        } else {
+          console.log('❌ User Management permission: DENIED', userMgmtResponse.data);
         }
       } catch (err) {
+        console.error('[SIDEBAR] Error checking user_management permission:', err.response?.data || err.message);
         // If admin, assume access (backend will handle it)
         if (isAdmin) {
-          hasAccess = true;
+          userMgmtAccess = true;
+          console.log('✅ User Management permission: GRANTED (admin fallback)');
+        } else {
+          console.log('❌ User Management permission: DENIED (error)');
         }
       }
       
-      setHasUserManagementAccess(hasAccess);
+      // Check activity management permission
+      try {
+        const activityMgmtResponse = await api.get('/permissions/check/activity_management');
+        console.log('[SIDEBAR] Activity Management check response:', activityMgmtResponse.data);
+        if (activityMgmtResponse.data.success && activityMgmtResponse.data.hasAccess) {
+          activityMgmtAccess = true;
+          console.log('✅ Activity Management permission: GRANTED');
+        } else {
+          console.log('❌ Activity Management permission: DENIED', activityMgmtResponse.data);
+        }
+      } catch (err) {
+        console.error('[SIDEBAR] Error checking activity_management permission:', err.response?.data || err.message);
+        // If admin, assume access (backend will handle it)
+        if (isAdmin) {
+          activityMgmtAccess = true;
+          console.log('✅ Activity Management permission: GRANTED (admin fallback)');
+        } else {
+          console.log('❌ Activity Management permission: DENIED (error)');
+        }
+      }
+      
+      // Check AI chat permission
+      try {
+        const aiChatResponse = await api.get('/permissions/check/ai_chat');
+        console.log('[SIDEBAR] AI Chat check response:', aiChatResponse.data);
+        if (aiChatResponse.data.success && aiChatResponse.data.hasAccess) {
+          aiChatAccess = true;
+          console.log('✅ AI Chat permission: GRANTED');
+        } else {
+          console.log('❌ AI Chat permission: DENIED', aiChatResponse.data);
+        }
+      } catch (err) {
+        console.error('[SIDEBAR] Error checking ai_chat permission:', err.response?.data || err.message);
+        // If admin, assume access (backend will handle it)
+        if (isAdmin) {
+          aiChatAccess = true;
+          console.log('✅ AI Chat permission: GRANTED (admin fallback)');
+        } else {
+          console.log('❌ AI Chat permission: DENIED (error)');
+        }
+      }
+      
+      console.log('[SIDEBAR] Final permission state:', {
+        userMgmtAccess,
+        activityMgmtAccess,
+        aiChatAccess
+      });
+      
+      setHasUserManagementAccess(userMgmtAccess);
+      setHasActivityManagementAccess(activityMgmtAccess);
+      setHasAiChatAccess(aiChatAccess);
       
       // Build menu items with current access state
       const defaultItems = [
         { path: '/dashboard', icon: HomeIcon, label: 'Dashboard', adminOnly: false },
         { path: '/profile', icon: UserIcon, label: 'Profile', adminOnly: false },
-        { path: '/chat', icon: MessagesIcon, label: 'AI Chat', adminOnly: false },
-        { path: '/activities', icon: ActivitiesIcon, label: 'Activities', adminOnly: false },
-        { path: '/history', icon: HistoryIcon, label: 'History', adminOnly: false },
-        { path: '/settings', icon: SettingsIcon, label: 'Settings', adminOnly: false },
       ];
 
+      // Add AI Chat if user has permission
+      if (aiChatAccess) {
+        defaultItems.push(
+          { path: '/chat', icon: MessagesIcon, label: 'AI Chat', adminOnly: false }
+        );
+        console.log('[SIDEBAR] Added AI Chat menu item');
+      }
+
+      // Add Activities if user has permission
+      if (activityMgmtAccess) {
+        defaultItems.push(
+          { path: '/activities', icon: ActivitiesIcon, label: 'Activities', adminOnly: false }
+        );
+        console.log('[SIDEBAR] Added Activities menu item');
+      }
+
       // Add User Management if user has permission
-      if (hasAccess) {
+      if (userMgmtAccess) {
         defaultItems.push(
           { path: '/users', icon: UserIcon, label: 'User Management', adminOnly: true }
         );
+        console.log('[SIDEBAR] Added User Management menu item');
       }
 
-      // Add Permissions Management for admins only
+      // Add Roles Management for admins only
       if (isAdmin) {
         defaultItems.push(
-          { path: '/permissions', icon: SettingsIcon, label: 'Permissions', adminOnly: true },
           { path: '/roles', icon: SettingsIcon, label: 'Roles', adminOnly: true }
         );
+        console.log('[SIDEBAR] Added Roles menu item');
       }
 
+      console.log('[SIDEBAR] Final menu items:', defaultItems.map(item => item.label));
       setMenuItems(defaultItems);
       setLoading(false);
     };
     
     checkPermissions();
-  }, [token, isAdmin]);
+    
+    // Listen for storage events to refresh when user data changes (e.g., after role update)
+    const handleStorageChange = (e) => {
+      if (e.key === 'user' || e.key === 'token') {
+        console.log('[SIDEBAR] User data changed, refreshing permissions...');
+        checkPermissions();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom event to refresh permissions
+    const handlePermissionRefresh = () => {
+      console.log('[SIDEBAR] Permission refresh event received');
+      checkPermissions();
+    };
+    
+    window.addEventListener('permissionsUpdated', handlePermissionRefresh);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('permissionsUpdated', handlePermissionRefresh);
+    };
+  }, [token, isAdmin, location.pathname]); // Added location.pathname to refresh when navigating
 
   // Default menu items as fallback (used if menuItems is empty)
   const getDefaultMenuItems = () => {
     const defaultItems = [
       { path: '/dashboard', icon: HomeIcon, label: 'Dashboard', adminOnly: false },
       { path: '/profile', icon: UserIcon, label: 'Profile', adminOnly: false },
-      { path: '/chat', icon: MessagesIcon, label: 'AI Chat', adminOnly: false },
-      { path: '/activities', icon: ActivitiesIcon, label: 'Activities', adminOnly: false },
-      { path: '/history', icon: HistoryIcon, label: 'History', adminOnly: false },
-      { path: '/settings', icon: SettingsIcon, label: 'Settings', adminOnly: false },
     ];
+
+    // Add AI Chat if user has permission (fallback: admin only)
+    if (hasAiChatAccess || isAdmin) {
+      defaultItems.push(
+        { path: '/chat', icon: MessagesIcon, label: 'AI Chat', adminOnly: false }
+      );
+    }
+
+    // Add Activities if user has permission (fallback: admin only)
+    if (hasActivityManagementAccess || isAdmin) {
+      defaultItems.push(
+        { path: '/activities', icon: ActivitiesIcon, label: 'Activities', adminOnly: false }
+      );
+    }
 
     // Add User Management if user has permission (fallback: admin only)
     if (hasUserManagementAccess || isAdmin) {
@@ -113,10 +272,9 @@ const Sidebar = () => {
       );
     }
 
-    // Add Permissions Management for admins only
+    // Add Roles Management for admins only
     if (isAdmin) {
       defaultItems.push(
-        { path: '/permissions', icon: SettingsIcon, label: 'Permissions', adminOnly: true },
         { path: '/roles', icon: SettingsIcon, label: 'Roles', adminOnly: true }
       );
     }

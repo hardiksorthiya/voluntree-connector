@@ -103,8 +103,28 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/apis-docs`);
+  console.log(`🔍 Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`🏠 API Root: http://localhost:${PORT}/api`);
+});
+
+// Handle server errors gracefully
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`\n❌ ERROR: Port ${PORT} is already in use!`);
+    console.error(`\n💡 Solutions:`);
+    console.error(`   1. Kill the process using port ${PORT}:`);
+    console.error(`      Windows: netstat -ano | findstr :${PORT}`);
+    console.error(`      Then: taskkill /PID <PID> /F`);
+    console.error(`   2. Or use a different port by setting PORT in .env file`);
+    console.error(`   3. Or change the port in server.js\n`);
+    process.exit(1);
+  } else {
+    console.error('❌ Server error:', error);
+    process.exit(1);
+  }
 });
 

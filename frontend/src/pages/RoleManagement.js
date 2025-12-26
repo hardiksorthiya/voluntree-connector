@@ -149,22 +149,42 @@ const RoleManagement = () => {
 		}
 
 		try {
-			const permissions = availablePermissions.map(perm => ({
-				permission_key: perm.permission_key,
-				has_access: formData.permissions.find(p => p.permission_key === perm.permission_key)?.has_access || false
-			}));
+			// Prepare permissions array - include all available permissions
+			const permissions = availablePermissions.map(perm => {
+				const existingPerm = formData.permissions.find(p => p.permission_key === perm.permission_key);
+				const hasAccess = existingPerm ? (existingPerm.has_access === true || existingPerm.has_access === 1 || existingPerm.has_access === '1') : false;
+				return {
+					permission_key: perm.permission_key,
+					has_access: hasAccess
+				};
+			});
+
+			console.log('Saving permissions for role:', editingRole?.id || 'new', permissions);
 
 			if (editingRole) {
-				// Update role
-				const response = await api.put(`/roles/${editingRole.id}`, {
-					name: formData.name,
+				// Prepare update data
+				const updateData = {
 					description: formData.description,
 					permissions: permissions
-				});
+				};
+				
+				// Only include name if it's a custom role (not Admin id:0 or Volunteer id:1)
+				// For Admin and Volunteer, don't send name to avoid validation errors
+				if (editingRole.id !== 0 && editingRole.id !== 1) {
+					updateData.name = formData.name;
+				}
+				
+				// Update role
+				const response = await api.put(`/roles/${editingRole.id}`, updateData);
 
 				if (response.data.success) {
 					setSuccess('Role updated successfully!');
 					fetchRoles();
+					
+					// Trigger sidebar refresh to update menu items
+					window.dispatchEvent(new Event('permissionsUpdated'));
+					console.log('[ROLE MANAGEMENT] Dispatched permissionsUpdated event');
+					
 					setTimeout(() => {
 						handleCloseModal();
 					}, 1000);
@@ -180,6 +200,11 @@ const RoleManagement = () => {
 				if (response.data.success) {
 					setSuccess('Role created successfully!');
 					fetchRoles();
+					
+					// Trigger sidebar refresh to update menu items
+					window.dispatchEvent(new Event('permissionsUpdated'));
+					console.log('[ROLE MANAGEMENT] Dispatched permissionsUpdated event');
+					
 					setTimeout(() => {
 						handleCloseModal();
 					}, 1000);
@@ -204,11 +229,6 @@ const RoleManagement = () => {
 		} catch (err) {
 			setError(err.response?.data?.message || 'Failed to delete role');
 		}
-	};
-
-	const getPermissionAccess = (role, permissionKey) => {
-		const perm = role.permissions?.find(p => p.permission_key === permissionKey);
-		return perm ? perm.has_access : false;
 	};
 
 	if (loading) {
@@ -252,7 +272,6 @@ const RoleManagement = () => {
 								<th>Description</th>
 								<th>Type</th>
 								<th>Permissions</th>
-								<th>Status</th>
 								<th>Actions</th>
 							</tr>
 						</thead>
@@ -270,15 +289,7 @@ const RoleManagement = () => {
 											<div className="role-name-cell">
 												<div className="role-name">
 													{role.name}
-													{role.id === 0 && (
-														<span className="system-badge" style={{ background: '#dc2626', color: '#fff' }}>Admin (ID: 0)</span>
-													)}
-													{role.id === 1 && (
-														<span className="system-badge" style={{ background: '#16a34a', color: '#fff' }}>Volunteer (ID: 1)</span>
-													)}
-													{role.id !== 0 && role.id !== 1 && role.is_system_role && (
-														<span className="system-badge">System</span>
-													)}
+													
 												</div>
 											</div>
 										</td>
@@ -300,11 +311,7 @@ const RoleManagement = () => {
 												<span> / {availablePermissions.length}</span>
 											</div>
 										</td>
-										<td>
-											<span className={`status-badge ${role.is_active ? 'active' : 'inactive'}`}>
-												{role.is_active ? 'Active' : 'Inactive'}
-											</span>
-										</td>
+										
 										<td>
 											<div className="action-buttons">
 												<button
@@ -419,7 +426,7 @@ const RoleManagement = () => {
 										borderRadius: '12px',
 										border: '2px dashed #e5e7eb'
 									}}>
-										No permissions available
+										No permissions available. Please run database migration to add fixed permissions.
 									</div>
 								) : (
 									<div className="permissions-list">
@@ -438,7 +445,19 @@ const RoleManagement = () => {
 														onClick={(e) => e.stopPropagation()}
 													/>
 													<div className="permission-item-info">
-														<div className="permission-item-name">{perm.permission_name}</div>
+														<div className="permission-item-name">
+															{perm.permission_name}
+															{perm.is_fixed && (
+																<span style={{ 
+																	marginLeft: '8px', 
+																	fontSize: '11px', 
+																	color: '#6b7280',
+																	fontStyle: 'italic'
+																}}>
+																	(System)
+																</span>
+															)}
+														</div>
 														<div className="permission-item-desc">
 															{perm.description || perm.permission_key}
 														</div>
