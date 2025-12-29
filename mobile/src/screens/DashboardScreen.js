@@ -1,28 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../config/api';
+import { StatusBar } from 'expo-status-bar';
 
-const DashboardScreen = ({ navigation }) => {
+const DashboardScreen = () => {
+  const navigation = useNavigation();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUser();
+    loadUserData();
   }, []);
 
-  const fetchUser = async () => {
+  const loadUserData = async () => {
     try {
-      const response = await api.get('/users/me');
-      if (response.data.success) {
-        setUser(response.data.data);
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
-      Alert.alert('Error', 'Failed to load user data');
-      navigation.replace('Login');
-    } finally {
-      setLoading(false);
+      console.error('Error loading user data:', error);
     }
   };
 
@@ -31,124 +35,131 @@ const DashboardScreen = ({ navigation }) => {
       'Logout',
       'Are you sure you want to logout?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
         {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
-            navigation.replace('Login');
-          }
-        }
+            try {
+              await AsyncStorage.removeItem('token');
+              await AsyncStorage.removeItem('user');
+              await AsyncStorage.removeItem('rememberMe');
+              // Navigate to Login screen
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+            }
+          },
+        },
       ]
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {user && (
-        <View style={styles.profileCard}>
-          <Text style={styles.welcomeText}>Welcome, {user.name}!</Text>
-          <View style={styles.infoSection}>
-            <Text style={styles.label}>Email:</Text>
-            <Text style={styles.value}>{user.email}</Text>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome</Text>
+          {user && (
+            <Text style={styles.userName}>{user.name || user.email}</Text>
+          )}
+        </View>
+
+        {/* Dashboard Content */}
+        <View style={styles.dashboardContent}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Dashboard</Text>
+            <Text style={styles.cardText}>
+              You have successfully logged in to Volunteer Connect!
+            </Text>
           </View>
-          <View style={styles.infoSection}>
-            <Text style={styles.label}>Phone:</Text>
-            <Text style={styles.value}>{user.phone || 'Not provided'}</Text>
-          </View>
-          <View style={styles.infoSection}>
-            <Text style={styles.label}>User Type:</Text>
-            <Text style={styles.value}>{user.user_type}</Text>
-          </View>
-          <View style={styles.infoSection}>
-            <Text style={styles.label}>Member Since:</Text>
-            <Text style={styles.value}>
-              {new Date(user.created_at).toLocaleDateString()}
+
+          {/* Placeholder for future features */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Quick Actions</Text>
+            <Text style={styles.cardText}>
+              More features coming soon...
             </Text>
           </View>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f3f4f6',
+  },
+  content: {
+    padding: 20,
+    paddingTop: 60,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#4CAF50',
+    marginBottom: 30,
+  },
+  welcomeText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  userName: {
+    fontSize: 18,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  dashboardContent: {
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     padding: 20,
-    paddingTop: 50,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  logoutButton: {
-    padding: 8,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  profileCard: {
-    backgroundColor: '#fff',
-    margin: 20,
-    padding: 20,
-    borderRadius: 8,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 20,
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
   },
-  infoSection: {
-    marginBottom: 15,
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  value: {
+  cardText: {
     fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
+    color: '#6b7280',
+    lineHeight: 24,
   },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
+  logoutButton: {
+    backgroundColor: '#dc2626',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  logoutButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -1,119 +1,221 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import api from '../config/api';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = () => {
+  const navigation = useNavigation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleRegister = async () => {
-    if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-    
+  const handleChange = (name, value) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+    setError('');
+  };
+
+  const handleSubmit = async () => {
+    setError('');
+
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const response = await api.post('/auth/register', {
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
+        mobile: formData.phone,
         password: formData.password,
-        confirmPassword: formData.confirmPassword
+        confirmPassword: formData.confirmPassword,
       });
-      
+
       if (response.data.success) {
-        Alert.alert(
-          'Success', 
-          'Registration successful! Please login.',
-          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-        );
+        // Navigate to Login screen after successful registration
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
       }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
-      Alert.alert('Registration Failed', errorMessage);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.form}>
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your full name"
-          value={formData.name}
-          onChangeText={(text) => setFormData({...formData, name: text})}
-        />
-        
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your email"
-          value={formData.email}
-          onChangeText={(text) => setFormData({...formData, email: text})}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        
-        <Text style={styles.label}>Phone Number</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your phone number"
-          value={formData.phone}
-          onChangeText={(text) => setFormData({...formData, phone: text})}
-          keyboardType="phone-pad"
-        />
-        
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your password"
-          value={formData.password}
-          onChangeText={(text) => setFormData({...formData, password: text})}
-          secureTextEntry
-        />
-        
-        <Text style={styles.label}>Confirm Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm your password"
-          value={formData.confirmPassword}
-          onChangeText={(text) => setFormData({...formData, confirmPassword: text})}
-          secureTextEntry
-        />
-        
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleRegister}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      keyboardShouldPersistTaps="handled"
+    >
+      {/* Welcome Section */}
+      <View style={styles.welcomeSection}>
+        <View style={styles.decorativeCircle1} />
+        <View style={styles.decorativeCircle2} />
+        <View style={styles.welcomeContent}>
+          <Text style={styles.welcomeTitle}>Join Us</Text>
+          <Text style={styles.welcomeHeadline}>Volunteer Connect</Text>
+          <Text style={styles.welcomeDescription}>
+            Start your journey of making a positive impact today. Create your account
+            to connect with organizations, discover volunteer opportunities, and be part
+            of a community that cares.
+          </Text>
+        </View>
+      </View>
+
+      {/* Form Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.formTitle}>Sign up</Text>
+        <Text style={styles.formSubtitle}>Create your account to get started</Text>
+
+        {/* Name Input */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Full Name</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon]}
+              placeholder="Enter your full name"
+              placeholderTextColor="#9ca3af"
+              value={formData.name}
+              onChangeText={(value) => handleChange('name', value)}
+              autoCapitalize="words"
+            />
+          </View>
+        </View>
+
+        {/* Email Input */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon]}
+              placeholder="Enter your email"
+              placeholderTextColor="#9ca3af"
+              value={formData.email}
+              onChangeText={(value) => handleChange('email', value)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        </View>
+
+        {/* Phone Input */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Phone Number</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon]}
+              placeholder="Enter your phone number"
+              placeholderTextColor="#9ca3af"
+              value={formData.phone}
+              onChangeText={(value) => handleChange('phone', value)}
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        {/* Password Input */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Password</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon, styles.passwordInput]}
+              placeholder="Enter your password"
+              placeholderTextColor="#9ca3af"
+              value={formData.password}
+              onChangeText={(value) => handleChange('password', value)}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.passwordToggle}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Text style={styles.passwordToggleText}>
+                {showPassword ? 'HIDE' : 'SHOW'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Confirm Password Input */}
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Confirm Password</Text>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={[styles.input, styles.inputWithIcon, styles.passwordInput]}
+              placeholder="Confirm your password"
+              placeholderTextColor="#9ca3af"
+              value={formData.confirmPassword}
+              onChangeText={(value) => handleChange('confirmPassword', value)}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={styles.passwordToggle}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <Text style={styles.passwordToggleText}>
+                {showConfirmPassword ? 'HIDE' : 'SHOW'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Error Message */}
+        {error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {/* Sign Up Button */}
+        <TouchableOpacity
+          style={[styles.primaryButton, loading && styles.buttonDisabled]}
+          onPress={handleSubmit}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
+            <Text style={styles.primaryButtonText}>Sign up</Text>
           )}
         </TouchableOpacity>
-        
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.link}>
-            Already have an account? <Text style={styles.linkBold}>Login</Text>
-          </Text>
-        </TouchableOpacity>
+
+        {/* Sign In Link */}
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.link}>Sign in</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -122,58 +224,172 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1e3a8a',
   },
-  form: {
-    backgroundColor: '#fff',
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  contentContainer: {
+    flexGrow: 1,
+  },
+  welcomeSection: {
+    backgroundColor: '#2563eb',
+    padding: 30,
+    paddingTop: 60,
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 250,
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: 50,
+    right: -50,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: 30,
+    left: -30,
+  },
+  welcomeContent: {
+    position: 'relative',
+    zIndex: 2,
+  },
+  welcomeTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 8,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  welcomeHeadline: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    opacity: 0.95,
+  },
+  welcomeDescription: {
+    fontSize: 14,
+    color: '#ffffff',
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  formSection: {
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -20,
+    flex: 1,
+  },
+  formTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  formSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  formGroup: {
+    marginBottom: 20,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
     marginBottom: 8,
-    marginTop: 15,
+    letterSpacing: 0.3,
+  },
+  inputWrapper: {
+    position: 'relative',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    width: '100%',
+    padding: 14,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
+    color: '#1f2937',
   },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
+  inputWithIcon: {
+    paddingLeft: 48,
+  },
+  passwordInput: {
+    paddingRight: 70,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  passwordToggleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2563eb',
+    letterSpacing: 0.5,
+  },
+  errorContainer: {
+    backgroundColor: '#fee2e2',
+    padding: 12,
     borderRadius: 8,
-    marginTop: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+  },
+  primaryButton: {
+    width: '100%',
+    padding: 14,
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  link: {
-    marginTop: 15,
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  linkBold: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
+  linkContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  linkText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  link: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563eb',
   },
 });
 
