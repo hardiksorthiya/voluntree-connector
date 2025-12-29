@@ -12,16 +12,32 @@ import { Platform } from 'react-native';
 // - Windows: ipconfig (look for IPv4 Address)
 // - Mac/Linux: ifconfig or ip addr
 
-// Auto-detect for Android emulator, otherwise use localhost
+// Production API Configuration
+// For production, use the live API URL
 const getApiUrl = () => {
+  // Check if we're in production mode
+  const isProduction = __DEV__ === false;
+  
+  if (isProduction) {
+    // Production API URL
+    return 'https://volunteerconnect.io/api';
+  }
+  
+  // Development mode - use local network
+  const USE_PHYSICAL_DEVICE = true; // Change to false for emulator/simulator
+  
+  if (USE_PHYSICAL_DEVICE) {
+    // For physical device - use your computer's IP address
+    // Make sure your phone and computer are on the same WiFi network
+    return 'http://192.168.1.9:3000/api';
+  }
+  
   if (Platform.OS === 'android') {
     // For Android emulator
     return 'http://10.0.2.2:3000/api';
   }
-  // For iOS simulator or if you want to use IP for physical devices
+  // For iOS simulator
   return 'http://localhost:3000/api';
-  // For physical device testing, uncomment and replace with your IP:
-  // return 'http://192.168.1.XXX:3000/api';
 };
 
 const API_BASE_URL = getApiUrl();

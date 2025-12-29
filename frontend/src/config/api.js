@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+// Production API URL - use environment variable or fallback to production
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://volunteerconnect.io/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

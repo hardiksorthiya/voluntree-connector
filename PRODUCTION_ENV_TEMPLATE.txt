@@ -1,0 +1,23 @@
+# Production .env file for Hostinger
+# Copy this content to backend/.env on your server
+# IMPORTANT: Generate a new JWT_SECRET before deploying!
+
+PORT=3000
+NODE_ENV=production
+
+# Database Configuration (Hostinger)
+DB_HOST=mysql
+DB_USER=u605696782_volunteer
+DB_PASSWORD=Volunteer@@123
+DB_NAME=u605696782_volunteer
+DB_PORT=3306
+
+# JWT Secret - GENERATE A NEW ONE!
+# Run this command on server: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# Then replace the value below
+JWT_SECRET=REPLACE_WITH_GENERATED_SECRET
+JWT_EXPIRE=7d
+
+# CORS Configuration
+CORS_ORIGIN=https://volunteerconnect.io
+

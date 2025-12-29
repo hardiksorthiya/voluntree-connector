@@ -77,7 +77,7 @@ const LoginScreen = () => {
           // Navigate to Dashboard immediately
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Dashboard' }],
+            routes: [{ name: 'MainTabs' }],
           });
         } catch (storageError) {
           console.error('Storage error:', storageError);

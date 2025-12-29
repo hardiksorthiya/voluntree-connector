@@ -11,8 +11,45 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // List of allowed origins
+    const allowedOrigins = [
+      'https://volunteerconnect.io',
+      'https://www.volunteerconnect.io',
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'http://192.168.1.9:3000',
+      'http://192.168.1.9:3001',
+      'exp://192.168.1.9:8081', // Expo dev server
+      /^http:\/\/192\.168\.\d+\.\d+:\d+$/, // Any local network IP
+    ];
+    
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      // In production, only allow specific origins
+      if (process.env.NODE_ENV === 'production') {
+        callback(new Error('Not allowed by CORS'));
+      } else {
+        // For development, allow all origins
+        callback(null, true);
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,7 +77,10 @@ app.get('/', (req, res) => {
   });
 });
 
-// API Documentation Route
+// API Documentation Routes (support both /api-docs and /apis-docs)
+app.get('/api-docs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
+});
 app.get('/apis-docs', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
 });
